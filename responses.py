@@ -1,11 +1,12 @@
-# def handle_response(message: str) -> str:
-#     p_message = message.lower()
-#
-#     if p_message == 'hello':
-#         return 'Hey there!'
-#
-#     elif p_message == '!help':
-#         return "`This is a help message that you can modify.`"
-#
-#     else:
-#         return "Sorry I didn't catch that. Please retype your message or use the !help feature"
+import discord
+from discord.ext import commands
+from discord import app_commands
+
+
+class Commands_For_Bot:
+    intents = discord.Intents.default()
+    client = discord.Client(intents=intents)
+    tree = app_commands.CommandTree(client)
+
+    @tree.command(name="commandname", description="My first application Command", guild=discord.Object(
+        id=12417128931))  # Add the guild ids in which the slash command will appear. If it should be in all, remove the argument, but note that it will take some time (up to an hour) to register the command if it's for all guilds.

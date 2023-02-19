@@ -5,6 +5,7 @@ from time_modulation import Time_Stuff
 from database import Database
 import os
 import asyncio
+import random
 
 
 class Focus_Bot_Client(discord.Client):
@@ -63,7 +64,6 @@ database_instance = Database(DB_PATH_AND_NAME)
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role. FocusRemove to take it away")
 async def FocusMode(interaction: discord.Interaction, minutes: int):
-
     Focus_Role_object = interaction.guild.get_role(Focus_Role_int)
 
     appropriate_response: str = Time_Stuff.time_responses(minutes)
@@ -82,7 +82,7 @@ async def FocusMode(interaction: discord.Interaction, minutes: int):
                 if minutes > entry[2]:
                     await interaction.response.send_message(appropriate_response, ephemeral=True)
                     await interaction.user.add_roles(Focus_Role_object)
-                    print(f"Sucessfully given {Focus_Role_object.mention} to {interaction.user.mention}")
+                    print(f"Successfully given {Focus_Role_object.mention} to {interaction.user.mention}")
                     database_instance.update_user_info_from_table("Study_Fam_People_Currently_In_Focus_Mode",
                                                                   "Epoch_End_Time_for_User_Focus_Mode",
                                                                   interaction.user.id,
@@ -90,14 +90,62 @@ async def FocusMode(interaction: discord.Interaction, minutes: int):
 
         await interaction.response.send_message(appropriate_response, ephemeral=True)
         await interaction.user.add_roles(Focus_Role_object)
-        print(f"Sucessfully given {Focus_Role_object.mention} to {interaction.user.mention}")
+        print(f"Successfully given {Focus_Role_object.mention} to {interaction.user.mention}")
         username = interaction.user.display_name
         user_id = interaction.user.id
         end_time_for_user_session = Time_Stuff.add_time(Time_Stuff.get_current_time_in_epochs(), minutes)
-        start_time_for_user_session = Time_Stuff.convert_epochs_to_human_readable_time(Time_Stuff.get_current_time_in_epochs())
+        start_time_for_user_session = Time_Stuff.convert_epochs_to_human_readable_time(
+            Time_Stuff.get_current_time_in_epochs())
         user_info_tuple_to_log_to_database = (username, user_id, end_time_for_user_session, start_time_for_user_session)
 
         database_instance.log_to_DB(user_info_tuple_to_log_to_database, "Study_Fam_People_Currently_In_Focus_Mode")
+
+
+@tree.command(name="time_left_in_focus", description="This will display how much time you have left in focus mode.")
+async def display_time_left_for_user(interaction: discord.Interaction):
+    database_entries = database_instance.retrieve_values_from_table("Study_Fam_People_Currently_In_Focus_Mode")
+
+    current_time = Time_Stuff.get_current_time_in_epochs()
+
+    for entry in database_entries:
+
+        if interaction.user.id in entry:
+            time_left_in_minutes = Time_Stuff.how_many_minutes_apart(entry[2], current_time)
+
+            await interaction.response.send_message(f"You have {time_left_in_minutes} minutes left in Focus Mode.",
+                                              ephemeral=True)
+
+    else:
+        await interaction.response.send_message("You are not in the Focus mode database currently.", ephemeral=True)
+
+
+@tree.command(name="display_all_in_focus_mode", description="Displays all of the users currently in Focus Mode")
+async def display_all_in_focus_mode(interaction: discord.Interaction):
+    database_entries = database_instance.retrieve_values_from_table("Study_Fam_People_Currently_In_Focus_Mode")
+
+    string_to_send_to_users = "Here is the list of users currently in Focus Mode: \n" \
+                              "(Note that times listed are in Eastern time in 24h time format)\n\n"
+
+    for entry in database_entries:
+        string_to_send_to_users += f"User's name: {entry[0]}, \n"
+        string_to_send_to_users += f"User's session start time: {entry[3]}\n"
+        string_to_send_to_users += f"User's session end time: " \
+                                   f"{Time_Stuff.convert_epochs_to_human_readable_time(entry[2])}\n\n"
+
+    await interaction.response.send_message(string_to_send_to_users, ephemeral=False)
+
+
+@tree.command(name="test_response", description="If the bot is truly online, it will respond back with a response.")
+async def test_response(interaction: discord.Interaction):
+
+    roll_the_dice = random.randint(1, 100)
+
+    if roll_the_dice != 90:
+
+        await interaction.response.send_message("I have received a test response and I am working fine!", ephemeral=False)
+
+    else:
+        await interaction.response.send_message("Yeah yeah yeah... I'm up, what do you need?", ephemeral=False)
 
 
 TOKEN = secrets.discord_bot_credentials["API_Key"]

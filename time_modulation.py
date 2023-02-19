@@ -17,9 +17,9 @@ class Time_Stuff:
         return current_epoch + seconds_to_add
 
     @staticmethod
-    def how_many_minutes_apart(epoch_time_one: float, epoch_time_two: float) -> float:
+    def how_many_minutes_apart(epoch_time_one: float, epoch_time_two: float) -> int:
         time_difference = float(epoch_time_two) - float(epoch_time_one)
-        return time_difference
+        return (time_difference // 60) * -1
 
     @staticmethod
     def time_responses(minutes: int):

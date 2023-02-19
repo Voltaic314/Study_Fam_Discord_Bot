@@ -14,7 +14,7 @@ class Database:
         self.cursor.execute(f"""SELECT name FROM {self.file_path_and_name} WHERE type='table';""")
         tuple_of_table_names = self.cursor.fetchall()
 
-        # Returning it this way so that it returns a list of table names instead of a list of typles of table names.
+        # Returning it this way so that it returns a list of table names instead of a list of tuples of table names.
         # Which in my opinion is cleaner and easier to parse through.
         return [name for table_name in tuple_of_table_names for name in table_name]
 

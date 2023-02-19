@@ -63,7 +63,61 @@ class Database:
         self.connect.commit()
 
     def update_user_info_from_table(self, name_of_table: str, column_name: str, User_ID: int, time_to_update: float):
-        self.cursor.execute(f"UPDATE {name_of_table} SET {column_name} = {time_to_update} WHERE User_ID={User_ID}")
+
+        # fetch the lastest listing in the db for that user
+        self.cursor.execute(f'SELECT FROM Study_Fam_People_Currently_In_Focus_Mode WHERE User_ID = {User_ID}')
+        list_of_tuple_of_items = self.cursor.fetchall()
+
+        # format our data to get it ready for updating the db
+        user_display_name = list_of_tuple_of_items[0][0]
+        user_session_start_time = list_of_tuple_of_items[0][3]
+        new_tuple_to_put_in_db = (user_display_name, User_ID, time_to_update, user_session_start_time)
+
+        # now that we have the new formatted data ready, delete the old listing.
+        self.cursor.execute(f"DELETE FROM {name_of_table} WHERE User_ID = {User_ID}")
+        
+        # insert new info into the database once we have the formatted data and previous entry deleted.
+        self.cursor.execute(f'INSERT INTO {name_of_table} VALUES (?, ?, ?, ?)', new_tuple_to_put_in_db)
+        self.connect.commit()
+
+    def check_if_user_in_database(self, user_ID: int):
+        self.cursor.execute(f'SELECT * FROM Study_Fam_People_Currently_In_Focus_Mode')
+        list_of_tuple_of_items = self.cursor.fetchall()
+
+        for entry in list_of_tuple_of_items:
+
+            if user_ID == entry[1]:
+                return entry
+
+        # This will only execute if it went through the whole list of entries and did not find the user's ID listed.
+        else:
+            return False
+
+    def remove_duplicates(self):
+        self.cursor.execute(f'SELECT * FROM Study_Fam_People_Currently_In_Focus_Mode')
+        list_of_tuple_of_items = self.cursor.fetchall()
+
+        list_of_entries_without_duplicates = []
+
+        for entry in list_of_tuple_of_items:
+
+            # if this is the first iteration, just add the first entry into the database.
+            if not list_of_entries_without_duplicates:
+                list_of_entries_without_duplicates.append(entry)
+
+            # if the new list is not empty (i.e. not the first iteration)
+            if list_of_entries_without_duplicates:
+                for no_duplicate_entry in list_of_entries_without_duplicates:
+                    if entry[2] > no_duplicate_entry[2]:
+                        list_of_entries_without_duplicates.remove(no_duplicate_entry)
+                        list_of_entries_without_duplicates.append(entry)
+
+        # Remove all rows from the table
+        self.cursor.execute('DELETE FROM Study_Fam_People_Currently_In_Focus_Mode')
+
+        # Rewrite the rows with the new updated no duplicate info.
+        for row in list_of_entries_without_duplicates:
+            self.cursor.execute('INSERT INTO Study_Fam_People_Currently_In_Focus_Mode VALUES (?, ?, ?, ?)', row)
         self.connect.commit()
 
 

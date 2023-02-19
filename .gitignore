@@ -1,2 +1,4 @@
 /secrets.py
 Focus_Mode_Info.db
+*.db
+__pycache__/secrets.cpython-39.pyc

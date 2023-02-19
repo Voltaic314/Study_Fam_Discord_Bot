@@ -62,7 +62,7 @@ DB_PATH_AND_NAME = os.path.join(CURRENT_DIRECTORY, "Focus_Mode_Info.db")
 database_instance = Database(DB_PATH_AND_NAME)
 
 
-@tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role. FocusRemove to take it away")
+@tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")
 async def FocusMode(interaction: discord.Interaction, minutes: int):
     Focus_Role_object = interaction.guild.get_role(Focus_Role_int)
 
@@ -73,32 +73,32 @@ async def FocusMode(interaction: discord.Interaction, minutes: int):
                                                 ephemeral=True)
 
     else:
-        database_entries = database_instance.retrieve_values_from_table("Study_Fam_People_Currently_In_Focus_Mode")
+        user_info_from_db = database_instance.check_if_user_in_database(interaction.user.id)
 
         # check the database to see if they are just updating their current time left. If not, then create a new entry.
         # if they are updating their time, make sure it's only adding more time, not lessening their time.
-        for entry in database_entries:
-            if interaction.user.id in entry:
-                if minutes > entry[2]:
-                    await interaction.response.send_message(appropriate_response, ephemeral=True)
-                    await interaction.user.add_roles(Focus_Role_object)
-                    print(f"Successfully given {Focus_Role_object.mention} to {interaction.user.mention}")
-                    database_instance.update_user_info_from_table("Study_Fam_People_Currently_In_Focus_Mode",
-                                                                  "Epoch_End_Time_for_User_Focus_Mode",
-                                                                  interaction.user.id,
-                                                                  Time_Stuff.get_current_time_in_epochs())
+        if user_info_from_db:
+            if minutes > user_info_from_db[2]:
+                await interaction.response.send_message(appropriate_response, ephemeral=True)
+                database_instance.update_user_info_from_table("Study_Fam_People_Currently_In_Focus_Mode",
+                                                              "Epoch_End_Time_for_User_Focus_Mode",
+                                                              interaction.user.id,
+                                                              Time_Stuff.get_current_time_in_epochs())
 
-        await interaction.response.send_message(appropriate_response, ephemeral=True)
-        await interaction.user.add_roles(Focus_Role_object)
-        print(f"Successfully given {Focus_Role_object.mention} to {interaction.user.mention}")
-        username = interaction.user.display_name
-        user_id = interaction.user.id
-        end_time_for_user_session = Time_Stuff.add_time(Time_Stuff.get_current_time_in_epochs(), minutes)
-        start_time_for_user_session = Time_Stuff.convert_epochs_to_human_readable_time(
-            Time_Stuff.get_current_time_in_epochs())
-        user_info_tuple_to_log_to_database = (username, user_id, end_time_for_user_session, start_time_for_user_session)
+        # This will execute if the user is not in the database already. Thus, the user_info_from_db value is False.
+        else:
+            await interaction.response.send_message(appropriate_response, ephemeral=True)
+            await interaction.user.add_roles(Focus_Role_object)
+            print(f"Successfully given Focus role to {interaction.user.display_name}")
 
-        database_instance.log_to_DB(user_info_tuple_to_log_to_database, "Study_Fam_People_Currently_In_Focus_Mode")
+            username = interaction.user.display_name
+            user_id = interaction.user.id
+            end_time_for_user_session = Time_Stuff.add_time(Time_Stuff.get_current_time_in_epochs(), minutes)
+            start_time_for_user_session = Time_Stuff.convert_epochs_to_human_readable_time(
+                Time_Stuff.get_current_time_in_epochs())
+
+            user_info_tuple_to_log_to_database = (username, user_id, end_time_for_user_session, start_time_for_user_session)
+            database_instance.log_to_DB(user_info_tuple_to_log_to_database, "Study_Fam_People_Currently_In_Focus_Mode")
 
 
 @tree.command(name="time_left_in_focus", description="This will display how much time you have left in focus mode.")
@@ -124,13 +124,13 @@ async def display_all_in_focus_mode(interaction: discord.Interaction):
     database_entries = database_instance.retrieve_values_from_table("Study_Fam_People_Currently_In_Focus_Mode")
 
     string_to_send_to_users = "Here is the list of users currently in Focus Mode: \n" \
-                              "(Note that times listed are in Eastern time in 24h time format)\n\n"
+                              "(Note that times listed are in Eastern time (UTC -5:00) in 24h time format)\n\n"
 
     for entry in database_entries:
         string_to_send_to_users += f"User's name: {entry[0]}, \n"
-        string_to_send_to_users += f"User's session start time: {entry[3]}\n"
+        string_to_send_to_users += f"User's session start time: {entry[3]}, \n"
         string_to_send_to_users += f"User's session end time: " \
-                                   f"{Time_Stuff.convert_epochs_to_human_readable_time(entry[2])}\n\n"
+                                   f"{Time_Stuff.convert_epochs_to_human_readable_time(entry[2])}, \n\n"
 
     await interaction.response.send_message(string_to_send_to_users, ephemeral=False)
 

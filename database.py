@@ -56,6 +56,7 @@ class Database:
         self.cursor.execute(
             "CREATE TABLE Study_Fam_People_Currently_In_Focus_Mode (Username text, User_ID integer, "
             "Epoch_End_Time_for_User_Focus_Mode real, Start_of_Session_Time text) ")
+        self.connect.commit()
 
     def delete_user_info_from_table(self, name_of_table: str, User_ID: int):
         self.cursor.execute(f"DELETE FROM {name_of_table} WHERE User_ID = {User_ID}")

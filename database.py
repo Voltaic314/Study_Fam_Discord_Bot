@@ -1,4 +1,5 @@
 import sqlite3
+import os
 
 
 class Database:
@@ -45,13 +46,28 @@ class Database:
         :param name_of_table_to_retrieve_from: This will be the name of the table you want to grab values from.
         :return: list of values as a list, not a list of tuples but just a 1D list of each item.
         """
-        self.cursor.execute(f'SELECT ALL FROM {name_of_table_to_retrieve_from}')
-        tuple_of_items = self.cursor.fetchall()
+        self.cursor.execute(f'SELECT * FROM {name_of_table_to_retrieve_from}')
+        list_of_tuple_of_items = self.cursor.fetchall()
 
-        return tuple_of_items
+        return list_of_tuple_of_items
 
     ## Built the database with these columns
-    # def build_database(self):
-    #     self.cursor.execute(
-    #         "CREATE TABLE Study_Fam_People_Currently_In_Focus_Mode (Username text, User_ID integer, "
-    #         "Epoch_End_Time_for_User_Focus_Mode real, Start_of_Session_Time text) ")
+    def build_database(self):
+        self.cursor.execute(
+            "CREATE TABLE Study_Fam_People_Currently_In_Focus_Mode (Username text, User_ID integer, "
+            "Epoch_End_Time_for_User_Focus_Mode real, Start_of_Session_Time text) ")
+
+    def delete_user_info_from_table(self, name_of_table: str, User_ID: int):
+        self.cursor.execute(f"DELETE FROM {name_of_table} WHERE User_ID = {User_ID}")
+        self.connect.commit()
+
+    def update_user_info_from_table(self, name_of_table: str, column_name: str, User_ID: int, time_to_update: float):
+        self.cursor.execute(f"UPDATE {name_of_table} SET {column_name} = {time_to_update} WHERE User_ID={User_ID}")
+        self.connect.commit()
+
+
+# get the current file path we're operating in, so we don't have to hard code this in.
+# this also requires that the database be in the same working directory as this script.
+CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+DB_PATH_AND_NAME = os.path.join(CURRENT_DIRECTORY, "Focus_Mode_Info.db")
+database_instance = Database(DB_PATH_AND_NAME)

@@ -65,7 +65,6 @@ database_instance = Database(DB_PATH_AND_NAME)
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")
 async def FocusMode(interaction: discord.Interaction, minutes: int):
     Focus_Role_object = interaction.guild.get_role(Focus_Role_int)
-
     appropriate_response: str = Time_Stuff.time_responses(minutes)
 
     if minutes > 1440 or minutes < 0:
@@ -78,15 +77,18 @@ async def FocusMode(interaction: discord.Interaction, minutes: int):
         # check the database to see if they are just updating their current time left. If not, then create a new entry.
         # if they are updating their time, make sure it's only adding more time, not lessening their time.
         if user_info_from_db:
-            if minutes > user_info_from_db[2]:
-                await interaction.response.send_message(appropriate_response, ephemeral=True)
+            await interaction.response.defer()
+
+            new_time = Time_Stuff.add_time(Time_Stuff.get_current_time_in_epochs(), minutes)
+
+            if new_time > user_info_from_db[2]:
+                await interaction.followup.send(content=appropriate_response, ephemeral=True)
                 database_instance.update_user_info_from_table("Study_Fam_People_Currently_In_Focus_Mode",
-                                                              "Epoch_End_Time_for_User_Focus_Mode",
                                                               interaction.user.id,
-                                                              Time_Stuff.get_current_time_in_epochs())
+                                                              new_time)
 
         # This will execute if the user is not in the database already. Thus, the user_info_from_db value is False.
-        else:
+        elif not user_info_from_db:
             await interaction.response.send_message(appropriate_response, ephemeral=True)
             await interaction.user.add_roles(Focus_Role_object)
             print(f"Successfully given Focus role to {interaction.user.display_name}")
@@ -113,7 +115,7 @@ async def display_time_left_for_user(interaction: discord.Interaction):
             time_left_in_minutes = Time_Stuff.how_many_minutes_apart(entry[2], current_time)
 
             await interaction.response.send_message(f"You have {time_left_in_minutes} minutes left in Focus Mode.",
-                                              ephemeral=True)
+                                                    ephemeral=True)
 
     else:
         await interaction.response.send_message("You are not in the Focus mode database currently.", ephemeral=True)

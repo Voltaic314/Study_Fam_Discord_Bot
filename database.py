@@ -62,23 +62,27 @@ class Database:
         self.cursor.execute(f"DELETE FROM {name_of_table} WHERE User_ID = {User_ID}")
         self.connect.commit()
 
-    def update_user_info_from_table(self, name_of_table: str, column_name: str, User_ID: int, time_to_update: float):
+    def update_user_info_from_table(self, name_of_table: str, User_ID: int, time_to_update: float):
 
         # fetch the lastest listing in the db for that user
-        self.cursor.execute(f'SELECT FROM Study_Fam_People_Currently_In_Focus_Mode WHERE User_ID = {User_ID}')
+        self.cursor.execute(f'SELECT * FROM Study_Fam_People_Currently_In_Focus_Mode')
         list_of_tuple_of_items = self.cursor.fetchall()
 
-        # format our data to get it ready for updating the db
-        user_display_name = list_of_tuple_of_items[0][0]
-        user_session_start_time = list_of_tuple_of_items[0][3]
-        new_tuple_to_put_in_db = (user_display_name, User_ID, time_to_update, user_session_start_time)
+        for entry in list_of_tuple_of_items:
+            if entry[1] == User_ID:
 
-        # now that we have the new formatted data ready, delete the old listing.
-        self.cursor.execute(f"DELETE FROM {name_of_table} WHERE User_ID = {User_ID}")
-        
-        # insert new info into the database once we have the formatted data and previous entry deleted.
-        self.cursor.execute(f'INSERT INTO {name_of_table} VALUES (?, ?, ?, ?)', new_tuple_to_put_in_db)
-        self.connect.commit()
+                # format our data to get it ready for updating the db
+                user_display_name = entry[0]
+                user_session_start_time = entry[3]
+
+                new_tuple_to_put_in_db = (user_display_name, User_ID, time_to_update, user_session_start_time)
+
+                # now that we have the new formatted data ready, delete the old listing.
+                self.cursor.execute(f"DELETE FROM {name_of_table} WHERE User_ID = {User_ID}")
+
+                # insert new info into the database once we have the formatted data and previous entry deleted.
+                self.cursor.execute(f'INSERT INTO {name_of_table} VALUES (?, ?, ?, ?)', new_tuple_to_put_in_db)
+                self.connect.commit()
 
     def check_if_user_in_database(self, user_ID: int):
         self.cursor.execute(f'SELECT * FROM Study_Fam_People_Currently_In_Focus_Mode')

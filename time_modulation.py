@@ -18,8 +18,8 @@ class Time_Stuff:
 
     @staticmethod
     def how_many_minutes_apart(epoch_time_one: float, epoch_time_two: float) -> int:
-        time_difference = float(epoch_time_two) - float(epoch_time_one)
-        return int(time_difference / 60) * -1
+        time_difference = float(epoch_time_one) - float(epoch_time_two)
+        return int(time_difference / 60)
 
     @staticmethod
     def time_responses(minutes: int):
@@ -51,3 +51,41 @@ class Time_Stuff:
 
         else:
             return "Please input a number of minutes that is between 1 and 1440"
+
+    @staticmethod
+    def pomodoro_session_length(study_interval: int, short_break: int, long_break: int, amount_of_pomos: int) -> int:
+        return ((study_interval * 3) + (short_break * 3) + long_break) * amount_of_pomos
+
+    @staticmethod
+    def pomo_responses_initial(pomo_sessions, break_time_amount: int, next_break_in_x_minutes,
+                               end_time: int):
+        if pomo_sessions <= 0:
+            return "You must enter a number of sessions that are greater or equal to 1"
+
+        elif pomo_sessions >= 1:
+            return f"Your pomodoro has started. Your next break will be {break_time_amount} minutes starting in " \
+                   f"{next_break_in_x_minutes} minutes. Your pomodoro will end in {end_time} minutes"
+
+    @staticmethod
+    def completed_pomodoro(current_pomo_interval: int) -> str:
+        if current_pomo_interval == 2:
+            return "You have completed a Pomodoro!"
+        elif current_pomo_interval > 2 and current_pomo_interval % 2 == 0:
+            total_pomodoros_completed = current_pomo_interval / 2
+            return f"You have completed {total_pomodoros_completed} pomodoros!"
+
+    @staticmethod
+    def next_break_time_pomo_default(interval: int) -> int:
+
+        pomo_times = [5, 5, 5, 20]
+        index_for_pomo_times = (interval % 4)
+        return pomo_times[index_for_pomo_times]
+
+    @staticmethod
+    def we_should_be_on_pomo_break(interval: int) -> bool:
+        pomo_interval = interval % 8
+        if pomo_interval % 2 == 0:
+            return True
+        else:
+            return False
+

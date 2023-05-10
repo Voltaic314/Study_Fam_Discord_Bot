@@ -1,4 +1,5 @@
 import time
+from typing import Tuple
 
 
 class Time_Stuff:
@@ -17,37 +18,49 @@ class Time_Stuff:
         return current_epoch + seconds_to_add
 
     @staticmethod
-    def how_many_minutes_apart(epoch_time_one: float, epoch_time_two: float) -> int:
+    def how_many_minutes_apart(epoch_time_one: float, epoch_time_two: float) -> list[float, float, float]:
         time_difference = float(epoch_time_one) - float(epoch_time_two)
-        return int(time_difference / 60)
+        minutes = int(time_difference / 60)
+        days = int(minutes / 1440)
+        hours = int((minutes % 1440) / 60)
+        minutes_after_hour_division = hours % 60
+        return [days, hours, minutes_after_hour_division]
 
     @staticmethod
     def time_responses(minutes: int):
 
-        if minutes > 1440 or minutes < 0:
-            return "Please input a number of minutes that is between 1 and 1440"
+        #  If the user requested to be in focus for longer than a week or less than 0 minutes, call them a moron. lol
+        if minutes > 10080 or minutes < 0:
+            return "Please input a number of minutes that is between 1 and 1440."
 
         if minutes == 1:
-            return f"You will now be in focus mode for {minutes} minute!"
+            return f"You will now be in focus mode for {minutes} minute."
 
         if 1 < minutes < 60:
-            return f"You will now be in focus mode for {minutes} minutes!"
+            return f"You will now be in focus mode for {minutes} minutes."
 
         if minutes == 60:
-            hours = minutes / 60
-            return f"You will now be in focus mode for {hours} hour!"
+            hours = int(minutes / 60)
+            return f"You will now be in focus mode for {hours} hour."
 
         if minutes > 60 and minutes % 60 == 0:
-            hours = minutes // 60
-            return f"You will now be in focus mode for {hours} hours!"
+            hours = int(minutes / 60)
+            return f"You will now be in focus mode for {hours} hours."
 
         if minutes > 60 and minutes % 60 != 0:
-            hours = minutes // 60
+            hours = int(minutes / 60)
             minutes_after_hour_division = minutes % 60
-            return f"You will now be in focus mode for {hours} hours and {minutes_after_hour_division} minutes!"
+            return f"You will now be in focus mode for {hours} hours and {minutes_after_hour_division} minutes."
 
         if minutes == 1440:
             return "You will now be in focus mode for 1 day."
+
+        if minutes > 1440 and minutes % 1440 == 0:
+            days = int(minutes / 1440)
+            hours = int((minutes % 1440) / 60)
+            minutes_after_hour_division = hours % 60
+            return f"You will now be in focus mode for {days} days, {hours} hours, and {minutes_after_hour_division}" \
+                   f" minutes."
 
         else:
             return "Please input a number of minutes that is between 1 and 1440"
@@ -88,4 +101,3 @@ class Time_Stuff:
             return True
         else:
             return False
-

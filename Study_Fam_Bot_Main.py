@@ -112,9 +112,9 @@ async def display_time_left_for_user(interaction: discord.Interaction):
 
         if interaction.user.id in entry:
             time_left = Time_Stuff.how_many_minutes_apart(entry[2], current_time)
-            days = time_left[0]
+            minutes = time_left[0]
             hours = time_left[1]
-            minutes = time_left[2]
+            days = time_left[2]
 
             await interaction.response.send_message(f"You have {days} days, {hours} hours, and {minutes} minutes left "
                                                     f"in Focus Mode.", ephemeral=True)

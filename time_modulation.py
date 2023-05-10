@@ -13,21 +13,29 @@ class Time_Stuff:
         return time.ctime(epochs)
 
     @staticmethod
-    def add_time(current_epoch: float, minutes_to_add: int):
+    def add_time(current_epoch: float, minutes_to_add: int) -> float:
         seconds_to_add: float = float(minutes_to_add * 60)
         return current_epoch + seconds_to_add
 
     @staticmethod
-    def how_many_minutes_apart(epoch_time_one: float, epoch_time_two: float) -> list[float, float, float]:
+    def how_many_minutes_apart(epoch_time_one: float, epoch_time_two: float) -> list[int]:
+        """
+        This function takes 2 times in epoch seconds that are floats and returns a list with 3 integers provided in the
+        format of minutes, hours, days in ascending order. This can be used for reference when the user wants to check
+        how much time they have left in focus mode.
+        :param epoch_time_one: float that represents the time in epochs
+        :param epoch_time_two: float #2 that also represents the time in epochs.
+        :returns: list of integers of how much time is left in a human-readable format. ex: [minutes, hours, days]
+        """
         time_difference = float(epoch_time_one) - float(epoch_time_two)
-        minutes = int(time_difference / 60)
-        days = int(minutes / 1440)
-        hours = int((minutes % 1440) / 60)
-        minutes_after_hour_division = hours % 60
-        return [days, hours, minutes_after_hour_division]
+        time_diff = abs(time2 - time1)
+        minutes = (time_diff // 60) % 60
+        hours = (time_diff // 3600) % 24
+        days = time_diff // 86400
+        return [minutes, hours, days]
 
     @staticmethod
-    def time_responses(minutes: int):
+    def time_responses(minutes: int) -> str:
 
         #  If the user requested to be in focus for longer than a week or less than 0 minutes, call them a moron. lol
         if minutes > 10080 or minutes < 0:
@@ -64,40 +72,3 @@ class Time_Stuff:
 
         else:
             return "Please input a number of minutes that is between 1 and 1440"
-
-    @staticmethod
-    def pomodoro_session_length(study_interval: int, short_break: int, long_break: int, amount_of_pomos: int) -> int:
-        return ((study_interval * 3) + (short_break * 3) + long_break) * amount_of_pomos
-
-    @staticmethod
-    def pomo_responses_initial(pomo_sessions, break_time_amount: int, next_break_in_x_minutes,
-                               end_time: int):
-        if pomo_sessions <= 0:
-            return "You must enter a number of sessions that are greater or equal to 1"
-
-        elif pomo_sessions >= 1:
-            return f"Your pomodoro has started. Your next break will be {break_time_amount} minutes starting in " \
-                   f"{next_break_in_x_minutes} minutes. Your pomodoro will end in {end_time} minutes"
-
-    @staticmethod
-    def completed_pomodoro(current_pomo_interval: int) -> str:
-        if current_pomo_interval == 2:
-            return "You have completed a Pomodoro!"
-        elif current_pomo_interval > 2 and current_pomo_interval % 2 == 0:
-            total_pomodoros_completed = current_pomo_interval / 2
-            return f"You have completed {total_pomodoros_completed} pomodoros!"
-
-    @staticmethod
-    def next_break_time_pomo_default(interval: int) -> int:
-
-        pomo_times = [5, 5, 5, 20]
-        index_for_pomo_times = (interval % 4)
-        return pomo_times[index_for_pomo_times]
-
-    @staticmethod
-    def we_should_be_on_pomo_break(interval: int) -> bool:
-        pomo_interval = interval % 8
-        if pomo_interval % 2 == 0:
-            return True
-        else:
-            return False

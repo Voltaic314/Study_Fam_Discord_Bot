@@ -158,5 +158,38 @@ async def test_response(interaction: discord.Interaction):
         await interaction.response.send_message("Yeah yeah yeah... I'm up, what do you need?", ephemeral=False)
 
 
+@tree.command(name="give_max_focus_time", description="Warning, this will give you the focus role for a week straight.")
+async def give_max_focus_time(interaction: discord.Interaction):
+    Focus_Role_object = interaction.guild.get_role(Focus_Role_int)
+    appropriate_response: str = Time_Stuff.time_responses(10080)
+
+    user_info_from_db = database_instance.check_if_user_in_database(interaction.user.id)
+    current_time = Time_Stuff.get_current_time_in_epochs()
+    number_of_seconds_in_a_week = 604_800
+    max_time = current_time + number_of_seconds_in_a_week
+    time_to_put_user_in_focus = Time_Stuff.add_time(current_time, max_time)
+
+    # if the user is in the database already, just update their time.
+    if user_info_from_db:
+        await interaction.response.defer()
+
+        if time_to_put_user_in_focus > user_info_from_db[2]:
+            await interaction.followup.send(content=appropriate_response, ephemeral=True)
+            database_instance.update_user_info_from_table("Study_Fam_People_Currently_In_Focus_Mode",
+                                                          interaction.user.id, time_to_put_user_in_focus)
+
+    # if the user is not already in the database, create an entry with the max focus time as their focus period.
+    else:
+        await interaction.response.send_message(appropriate_response, ephemeral=True)
+        await interaction.user.add_roles(Focus_Role_object)
+        print(f"Successfully given Focus role to {interaction.user.display_name}")
+
+        username = interaction.user.display_name
+        user_id = interaction.user.id
+        end_time_for_user_session = time_to_put_user_in_focus
+        start_time_for_user_session = Time_Stuff.convert_epochs_to_human_readable_time(current_time)
+        user_info_tuple_to_log_to_database = (username, user_id, end_time_for_user_session, start_time_for_user_session)
+        database_instance.log_to_DB(user_info_tuple_to_log_to_database, "Study_Fam_People_Currently_In_Focus_Mode")
+
 TOKEN = secrets.discord_bot_credentials["API_Key"]
 client.run(TOKEN)

@@ -1,5 +1,5 @@
 import time
-from typing import Tuple
+import math
 
 
 class Time_Stuff:
@@ -10,7 +10,7 @@ class Time_Stuff:
 
     @staticmethod
     def convert_epochs_to_human_readable_time(epochs: float) -> str:
-        return time.ctime(epochs)
+        return time.ctime(float(math.floor(epochs)))
 
     @staticmethod
     def add_time(current_epoch: float, minutes_to_add: int) -> float:
@@ -27,8 +27,7 @@ class Time_Stuff:
         :param epoch_time_two: float #2 that also represents the time in epochs.
         :returns: list of integers of how much time is left in a human-readable format. ex: [minutes, hours, days]
         """
-        time_difference = float(epoch_time_one) - float(epoch_time_two)
-        time_diff = abs(time2 - time1)
+        time_diff = abs(epoch_time_one - epoch_time_two)
         minutes = (time_diff // 60) % 60
         hours = (time_diff // 3600) % 24
         days = time_diff // 86400

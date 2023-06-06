@@ -165,9 +165,9 @@ async def give_max_focus_time(interaction: discord.Interaction):
 
     user_info_from_db = database_instance.check_if_user_in_database(interaction.user.id)
     current_time = Time_Stuff.get_current_time_in_epochs()
-    number_of_seconds_in_a_week = 604_800
+    number_of_seconds_in_a_week = 604800
     max_time = current_time + number_of_seconds_in_a_week
-    time_to_put_user_in_focus = Time_Stuff.add_time(current_time, max_time)
+    time_to_put_user_in_focus = max_time
 
     # if the user is in the database already, just update their time.
     if user_info_from_db:
@@ -190,6 +190,45 @@ async def give_max_focus_time(interaction: discord.Interaction):
         start_time_for_user_session = Time_Stuff.convert_epochs_to_human_readable_time(current_time)
         user_info_tuple_to_log_to_database = (username, user_id, end_time_for_user_session, start_time_for_user_session)
         database_instance.log_to_DB(user_info_tuple_to_log_to_database, "Study_Fam_People_Currently_In_Focus_Mode")
+
+
+@tree.command(name="remove_user_focus_override", description="Removes a user from focus role and their database entry "
+                                                             "(mod only)")
+async def remove_user_focus_override(interaction: discord.Interaction, user_to_be_removed: discord.User):
+    await interaction.response.defer()
+    server_id = secrets.discord_bot_credentials["Server_ID_for_Study_Fam"]
+    guild = client.get_guild(server_id)
+    member = interaction.user
+    focus_role_id = secrets.discord_bot_credentials["Focus_Role_ID"]
+    mod_role_id = secrets.discord_bot_credentials["Server_Mod_Role_ID"]
+    botmod_role_id = secrets.discord_bot_credentials["Server_Botmod_Role_ID"]
+    admin_role_id = secrets.discord_bot_credentials["Server_Admin_Role_ID"]
+
+    # All we care about is if the user has the correct role, out of the 3 roles above, as long as they have at least one
+    user_doing_command_has_correct_authorization = discord.utils.get(member.roles, id=mod_role_id) or discord.utils.get(
+        member.roles, id=botmod_role_id) or discord.utils.get(member.roles, id=admin_role_id)
+
+    if user_doing_command_has_correct_authorization:
+        user_to_be_removed_has_focus_role_currently = discord.utils.get(member.roles, id=focus_role_id)
+        user_is_in_db = database_instance.check_if_user_in_database(user_to_be_removed.id)
+
+        if user_to_be_removed_has_focus_role_currently:
+            current_user = await guild.fetch_member(user_to_be_removed.id)
+            Focus_Role_object = discord.utils.get(guild.roles, name="Focus")
+            await current_user.remove_roles(Focus_Role_object)
+            print("User has been removed from the focus role")
+
+        if user_is_in_db:
+            database_instance.delete_user_info_from_table("Study_Fam_People_Currently_In_Focus_Mode",
+                                                          user_to_be_removed.id)
+            print("User has been removed from the database")
+
+        appropriate_response = f"{user_to_be_removed.mention} has been removed from the database and set to not be in focus anymore!"
+        await interaction.followup.send(content=appropriate_response, ephemeral=True)
+
+    else:
+        appropriate_response = "You do not have an authorized role to do this, sorry."
+        await interaction.followup.send(content=appropriate_response, ephemeral=True)
 
 TOKEN = secrets.discord_bot_credentials["API_Key"]
 client.run(TOKEN)

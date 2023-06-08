@@ -16,11 +16,14 @@ class Focus_Bot_Client(discord.Client):
         self.synced = False  # we use this so the bot doesn't sync commands more than once
 
     async def on_ready(self):
+        # wait for the bot to be set up properly
         await self.wait_until_ready()
         if not self.synced:  # check if slash commands have been synced
             await tree.sync()
             self.synced = True
         print(f"We have logged in as {self.user}.")
+
+        # when we start up the bot, run the check to remove anyone in the database who shouldn't be in there anymore.
         self.loop.create_task(self.role_and_db_removal())
 
     async def role_and_db_removal(self):
@@ -39,10 +42,12 @@ class Focus_Bot_Client(discord.Client):
 
                 for entry in database_entries:
                     current_time = Time_Stuff.get_current_time_in_epochs()
+                    Focus_Role_object = discord.utils.get(guild.roles, name="Focus")
 
+                    # check to see if the user is past their expired focus ending time. If so, remove them from the
+                    # database and remove their focus role. Do this for every user in the database.
                     if entry[2] <= current_time:
                         current_user = await guild.fetch_member(entry[1])
-                        Focus_Role_object = discord.utils.get(guild.roles, name="Focus")
                         await current_user.remove_roles(Focus_Role_object)
                         database_instance.delete_user_info_from_table(
                             name_of_table="Study_Fam_People_Currently_In_Focus_Mode",
@@ -79,7 +84,7 @@ async def FocusMode(interaction: discord.Interaction, minutes: int):
         if user_info_from_db:
             await interaction.response.defer()
 
-            new_time = Time_Stuff.add_time(Time_Stuff.get_current_time_in_epochs(), minutes)
+            new_time = Time_Stuff.get_current_time_in_epochs() + minutes
 
             if new_time > user_info_from_db[2]:
                 await interaction.followup.send(content=appropriate_response, ephemeral=True)
@@ -92,13 +97,16 @@ async def FocusMode(interaction: discord.Interaction, minutes: int):
             await interaction.user.add_roles(Focus_Role_object)
             print(f"Successfully given Focus role to {interaction.user.display_name}")
 
+            # set up our variables into a human-readable format, so it's clear what order things go into the database.
             username = interaction.user.display_name
             user_id = interaction.user.id
-            end_time_for_user_session = Time_Stuff.add_time(Time_Stuff.get_current_time_in_epochs(), minutes)
+            end_time_for_user_session = Time_Stuff.get_current_time_in_epochs() + minutes
             start_time_for_user_session = Time_Stuff.convert_epochs_to_human_readable_time(
                 Time_Stuff.get_current_time_in_epochs())
+            user_info_tuple_to_log_to_database = (
+                username, user_id, end_time_for_user_session, start_time_for_user_session)
 
-            user_info_tuple_to_log_to_database = (username, user_id, end_time_for_user_session, start_time_for_user_session)
+            # now time to actually log all of that to the database.
             database_instance.log_to_DB(user_info_tuple_to_log_to_database, "Study_Fam_People_Currently_In_Focus_Mode")
 
 
@@ -125,35 +133,50 @@ async def display_time_left_for_user(interaction: discord.Interaction):
 
 @tree.command(name="display_all_in_focus_mode", description="Displays all of the users currently in Focus Mode")
 async def display_all_in_focus_mode(interaction: discord.Interaction):
+
+    # if we don't do this, discord only gives the bot like 2 seconds to do all of this else it errors out. This gives us
+    # more time to do the following steps.
+    await interaction.response.defer()
+    Focus_Role_object = interaction.guild.get_role(Focus_Role_int)
+
+    # builds the list of users in focus from the database and in the line after, all the users who have focus that are
+    # not in the database too.
     database_entries = database_instance.retrieve_values_from_table("Study_Fam_People_Currently_In_Focus_Mode")
+    non_database_users_in_focus = [member for member in Focus_Role_object.members if member not in database_entries]
 
-    if database_entries:
-
-        string_to_send_to_users = "Here is the list of users currently in Focus Mode: \n" \
-                                  "(Note that times listed are in Eastern time (UTC - 5:00) in 24h time format)\n\n"
-
-        for entry in database_entries:
-            string_to_send_to_users += f"User's name: {entry[0]}, \n"
-            string_to_send_to_users += f"User's session start time: {entry[3]}, \n"
-            string_to_send_to_users += f"User's session end time: " \
-                                       f"{Time_Stuff.convert_epochs_to_human_readable_time(entry[2])}, \n\n"
-
+    # if there are no users with the focus role at all, then just say that.
+    if not Focus_Role_object.members:
+        string_to_send_to_users = "There are currently no users at all in focus mode right now."
         await interaction.response.send_message(string_to_send_to_users, ephemeral=False)
 
-    else:
-        string_to_send_to_users = "There are currently no users in Focus mode via the bot commands."
+        # if there are any users who had the focus role via the bot, list their info out.
+        if database_entries:
+
+            string_to_send_to_users = "Here is the list of users currently in Focus Mode: \n" \
+                                      "(Note that times listed are in Eastern time (UTC - 5:00) in 24h time format)\n\n"
+
+            # format the string to be sent to the channel for each user.
+            for entry in database_entries:
+                string_to_send_to_users += f"User's name: {entry[0]}, \n"
+                string_to_send_to_users += f"User's session start time: {entry[3]}, \n"
+                string_to_send_to_users += f"User's session end time: " \
+                                           f"{Time_Stuff.convert_epochs_to_human_readable_time(entry[2])}, \n\n"
+
+        # for anyone else who is in focus not via the bot, list them out too.
+        string_to_send_to_users += "Other users in focus include: \n"
+        for user in non_database_users_in_focus:
+            string_to_send_to_users += f"{user.display_name}\n"
+
+        # finally, send the message to the channel that we've spent all this time building.
         await interaction.response.send_message(string_to_send_to_users, ephemeral=False)
 
 
 @tree.command(name="test_response", description="If the bot is truly online, it will respond back with a response.")
 async def test_response(interaction: discord.Interaction):
-
     roll_the_dice = random.randint(1, 100)
-
     if roll_the_dice != 90:
-
-        await interaction.response.send_message("I have received a test response and I am working fine!", ephemeral=False)
-
+        await interaction.response.send_message("I have received a test response and I am working fine!",
+                                                ephemeral=False)
     else:
         await interaction.response.send_message("Yeah yeah yeah... I'm up, what do you need?", ephemeral=False)
 
@@ -162,7 +185,6 @@ async def test_response(interaction: discord.Interaction):
 async def give_max_focus_time(interaction: discord.Interaction):
     Focus_Role_object = interaction.guild.get_role(Focus_Role_int)
     appropriate_response: str = Time_Stuff.time_responses(10080)
-
     user_info_from_db = database_instance.check_if_user_in_database(interaction.user.id)
     current_time = Time_Stuff.get_current_time_in_epochs()
     number_of_seconds_in_a_week = 604800
@@ -229,6 +251,17 @@ async def remove_user_focus_override(interaction: discord.Interaction, user_to_b
     else:
         appropriate_response = "You do not have an authorized role to do this, sorry."
         await interaction.followup.send(content=appropriate_response, ephemeral=True)
+
+
+@tree.command(name="give_endless_focus_mode", description="Gives focus mode until a mod pulls you out.")
+async def give_endless_focus_mode(interaction: discord.Interaction):
+    await interaction.response.defer()
+    Focus_Role_object = interaction.guild.get_role(Focus_Role_int)
+    appropriate_response = "You will now be in focus mode with no set end date. Please message or tag a moderator to " \
+                           "be removed from focus."
+    await interaction.response.send_message(appropriate_response, ephemeral=True)
+    await interaction.user.add_roles(Focus_Role_object)
+    print(f"Successfully given Focus role to {interaction.user.display_name}")
 
 TOKEN = secrets.discord_bot_credentials["API_Key"]
 client.run(TOKEN)

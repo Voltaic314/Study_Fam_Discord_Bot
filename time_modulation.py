@@ -13,11 +13,6 @@ class Time_Stuff:
         return time.ctime(float(math.floor(epochs)))
 
     @staticmethod
-    def add_time(current_epoch: float, minutes_to_add: int) -> float:
-        seconds_to_add: float = float(minutes_to_add * 60)
-        return current_epoch + seconds_to_add
-
-    @staticmethod
     def how_many_minutes_apart(epoch_time_one: float, epoch_time_two: float) -> list[int]:
         """
         This function takes 2 times in epoch seconds that are floats and returns a list with 3 integers provided in the

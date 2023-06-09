@@ -133,10 +133,6 @@ async def display_time_left_for_user(interaction: discord.Interaction):
 
 @tree.command(name="display_all_in_focus_mode", description="Displays all of the users currently in Focus Mode")
 async def display_all_in_focus_mode(interaction: discord.Interaction):
-
-    # if we don't do this, discord only gives the bot like 2 seconds to do all of this else it errors out. This gives us
-    # more time to do the following steps.
-    await interaction.response.defer()
     Focus_Role_object = interaction.guild.get_role(Focus_Role_int)
 
     # builds the list of users in focus from the database and in the line after, all the users who have focus that are
@@ -255,7 +251,6 @@ async def remove_user_focus_override(interaction: discord.Interaction, user_to_b
 
 @tree.command(name="give_endless_focus_mode", description="Gives focus mode until a mod pulls you out.")
 async def give_endless_focus_mode(interaction: discord.Interaction):
-    await interaction.response.defer()
     Focus_Role_object = interaction.guild.get_role(Focus_Role_int)
     appropriate_response = "You will now be in focus mode with no set end date. Please message or tag a moderator to " \
                            "be removed from focus."

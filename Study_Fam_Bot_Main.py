@@ -139,16 +139,25 @@ async def display_all_in_focus_mode(interaction: discord.Interaction):
     # builds the list of users in focus from the database and in the line after, all the users who have focus that are
     # not in the database too.
     database_entries = database_instance.retrieve_values_from_table("Study_Fam_People_Currently_In_Focus_Mode")
-    non_database_users_in_focus = [member for member in Focus_Role_object.members if member not in database_entries]
+
+    # This is a list of member objects that are not in the database. It compares the role members' IDs with the
+    # IDs in the list of tuples.
+    non_database_users_in_focus = [member for member in Focus_Role_object.members if member.id
+                                   not in [user[1] for user in database_entries]]
 
     # if there are no users with the focus role at all, then just say that.
     if not Focus_Role_object.members:
         string_to_send_to_users += "There are currently no users at all in focus mode right now."
-        await interaction.response.send_message(string_to_send_to_users, ephemeral=False)
+        await interaction.followup.send(content=string_to_send_to_users, ephemeral=False)
+
+    else:
+        # This will take a little bit of time so need to prepare discord API for our longer action.
+        await interaction.response.defer()
 
         # if there are any users who had the focus role via the bot, list their info out.
         if database_entries:
 
+            # setting up the initial string
             string_to_send_to_users = "Here is the list of users currently in Focus Mode: \n" \
                                       "(Note that times listed are in Eastern time (UTC - 5:00) in 24h time format)\n\n"
 
@@ -160,12 +169,12 @@ async def display_all_in_focus_mode(interaction: discord.Interaction):
                                            f"{Time_Stuff.convert_epochs_to_human_readable_time(entry[2])}, \n\n"
 
         # for anyone else who is in focus not via the bot, list them out too.
-        string_to_send_to_users += "Other users in focus include: \n"
+        string_to_send_to_users += "Users in focus (not in the database) include: \n"
         for user in non_database_users_in_focus:
             string_to_send_to_users += f"{user.display_name}\n"
 
         # finally, send the message to the channel that we've spent all this time building.
-        await interaction.response.send_message(string_to_send_to_users, ephemeral=False)
+        await interaction.followup.send(content=string_to_send_to_users, ephemeral=True)
 
 
 @tree.command(name="test_response", description="If the bot is truly online, it will respond back with a response.")

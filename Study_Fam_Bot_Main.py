@@ -145,11 +145,12 @@ async def display_all_in_focus_mode(interaction: discord.Interaction):
         string_to_send_to_users = "There are currently no users at all in focus mode right now."
         await interaction.response.send_message(string_to_send_to_users, ephemeral=False)
 
+    string_to_send_to_users = "Here is the list of users currently in Focus Mode: \n"
+
     # if there are any users who had the focus role via the bot, list their info out.
     if database_entries:
 
-        string_to_send_to_users = "Here is the list of users currently in Focus Mode: \n" \
-                                  "(Note that times listed are in Eastern time (UTC - 5:00) in 24h time format)\n\n"
+        string_to_send_to_users += "(Note that times listed are in Eastern time (UTC - 5:00) in 24h time format)\n\n"
 
         # format the string to be sent to the channel for each user.
         for entry in database_entries:

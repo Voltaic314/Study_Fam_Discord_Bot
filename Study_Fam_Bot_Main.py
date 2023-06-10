@@ -5,7 +5,6 @@ from time_modulation import Time_Stuff
 from database import Database
 import os
 import asyncio
-import random
 
 
 class Focus_Bot_Client(discord.Client):
@@ -83,8 +82,9 @@ async def FocusMode(interaction: discord.Interaction, minutes: int):
         # if they are updating their time, make sure it's only adding more time, not lessening their time.
         if user_info_from_db:
             await interaction.response.defer()
+            seconds = minutes * 60
 
-            new_time = Time_Stuff.get_current_time_in_epochs() + minutes
+            new_time = Time_Stuff.get_current_time_in_epochs() + seconds
 
             if new_time > user_info_from_db[2]:
                 await interaction.followup.send(content=appropriate_response, ephemeral=True)
@@ -100,7 +100,8 @@ async def FocusMode(interaction: discord.Interaction, minutes: int):
             # set up our variables into a human-readable format, so it's clear what order things go into the database.
             username = interaction.user.display_name
             user_id = interaction.user.id
-            end_time_for_user_session = Time_Stuff.get_current_time_in_epochs() + minutes
+            seconds = minutes * 60
+            end_time_for_user_session = Time_Stuff.get_current_time_in_epochs() + seconds
             start_time_for_user_session = Time_Stuff.convert_epochs_to_human_readable_time(
                 Time_Stuff.get_current_time_in_epochs())
             user_info_tuple_to_log_to_database = (
@@ -134,6 +135,10 @@ async def display_time_left_for_user(interaction: discord.Interaction):
 @tree.command(name="display_all_in_focus_mode", description="Displays all of the users currently in Focus Mode")
 async def display_all_in_focus_mode(interaction: discord.Interaction):
     string_to_send_to_users = ""
+
+    # This will take a little bit of time so need to prepare discord API for our longer action.
+    await interaction.response.defer()
+
     Focus_Role_object = interaction.guild.get_role(Focus_Role_int)
 
     # builds the list of users in focus from the database and in the line after, all the users who have focus that are
@@ -147,13 +152,10 @@ async def display_all_in_focus_mode(interaction: discord.Interaction):
 
     # if there are no users with the focus role at all, then just say that.
     if not Focus_Role_object.members:
-        string_to_send_to_users += "There are currently no users at all in focus mode right now."
+        string_to_send_to_users += "There are currently no users in focus mode right now."
         await interaction.followup.send(content=string_to_send_to_users, ephemeral=False)
 
     else:
-        # This will take a little bit of time so need to prepare discord API for our longer action.
-        await interaction.response.defer()
-
         # if there are any users who had the focus role via the bot, list their info out.
         if database_entries:
 
@@ -179,12 +181,8 @@ async def display_all_in_focus_mode(interaction: discord.Interaction):
 
 @tree.command(name="test_response", description="If the bot is truly online, it will respond back with a response.")
 async def test_response(interaction: discord.Interaction):
-    roll_the_dice = random.randint(1, 100)
-    if roll_the_dice != 90:
-        await interaction.response.send_message("I have received a test response and I am working fine!",
-                                                ephemeral=False)
-    else:
-        await interaction.response.send_message("Yeah yeah yeah... I'm up, what do you need?", ephemeral=False)
+    await interaction.response.send_message("I have received a test response and I am working fine!",
+                                            ephemeral=False)
 
 
 @tree.command(name="give_max_focus_time", description="Warning, this will give you the focus role for a week straight.")

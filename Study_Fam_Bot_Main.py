@@ -125,11 +125,11 @@ async def display_time_left_for_user(interaction: discord.Interaction):
             hours = time_left[1]
             days = time_left[2]
 
-            await interaction.response.send_message(f"You have {days} days, {hours} hours, and {minutes} minutes left "
-                                                    f"in Focus Mode.", ephemeral=True)
+            await interaction.channel.send(f"You have {days} days, {hours} hours, and {minutes} minutes left "
+                                           f"in Focus Mode.")
 
     else:
-        await interaction.response.send_message("You are not in the Focus mode database currently.", ephemeral=True)
+        await interaction.channel.send("You are not in the Focus mode database currently.")
 
 
 @tree.command(name="display_all_in_focus_mode", description="Displays all of the users currently in Focus Mode")

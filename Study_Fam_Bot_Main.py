@@ -11,7 +11,7 @@ class Focus_Bot_Client(discord.Client):
     def __init__(self):
         intents = discord.Intents.default()
         intents.members = True  # Enable the GUILD_MEMBERS intent
-        super().__init__(intents=discord.Intents.default())
+        super().__init__(intents=intents)
         self.synced = False  # we use this so the bot doesn't sync commands more than once
 
     async def on_ready(self):
@@ -117,29 +117,27 @@ async def display_time_left_for_user(interaction: discord.Interaction):
 
     current_time = Time_Stuff.get_current_time_in_epochs()
 
-    for entry in database_entries:
+    if database_entries:
 
-        if interaction.user.id in entry:
-            time_left = Time_Stuff.how_many_minutes_apart(entry[2], current_time)
-            minutes = time_left[0]
-            hours = time_left[1]
-            days = time_left[2]
+        for entry in database_entries:
 
-            await interaction.channel.send(f"You have {days} days, {hours} hours, and {minutes} minutes left "
-                                           f"in Focus Mode.")
+            if interaction.user.id in entry:
+                time_left = Time_Stuff.how_many_minutes_apart(entry[2], current_time)
+                minutes = time_left[0]
+                hours = time_left[1]
+                days = time_left[2]
 
-    else:
-        await interaction.channel.send("You are not in the Focus mode database currently.")
+                await interaction.channel.send(f"{interaction.user.mention} - You have {days} days, {hours} hours, and {minutes} minutes left "
+                                               f"in Focus Mode.")
+
+            else:
+                await interaction.channel.send(f"{interaction.user.mention} - You are not in the Focus mode database currently.")
 
 
 @tree.command(name="display_all_in_focus_mode", description="Displays all of the users currently in Focus Mode")
 async def display_all_in_focus_mode(interaction: discord.Interaction):
     string_to_send_to_users = ""
-
-    # This will take a little bit of time so need to prepare discord API for our longer action.
-    await interaction.response.defer()
-
-    Focus_Role_object = interaction.guild.get_role(Focus_Role_int)
+    Focus_Role_Object = interaction.guild.get_role(Focus_Role_int)
 
     # builds the list of users in focus from the database and in the line after, all the users who have focus that are
     # not in the database too.
@@ -147,13 +145,14 @@ async def display_all_in_focus_mode(interaction: discord.Interaction):
 
     # This is a list of member objects that are not in the database. It compares the role members' IDs with the
     # IDs in the list of tuples.
-    non_database_users_in_focus = [member for member in Focus_Role_object.members if member.id
+    all_focus_members = [member for member in interaction.guild.members if Focus_Role_Object in member.roles]
+    non_database_users_in_focus = [member for member in all_focus_members if member.id
                                    not in [user[1] for user in database_entries]]
 
     # if there are no users with the focus role at all, then just say that.
-    if not Focus_Role_object.members:
+    if not Focus_Role_Object.members:
         string_to_send_to_users += "There are currently no users in focus mode right now."
-        await interaction.channel.send(content=string_to_send_to_users)
+        await interaction.channel.send(string_to_send_to_users)
 
     else:
         # if there are any users who had the focus role via the bot, list their info out.

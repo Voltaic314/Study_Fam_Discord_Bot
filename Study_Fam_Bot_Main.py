@@ -153,7 +153,7 @@ async def display_all_in_focus_mode(interaction: discord.Interaction):
     # if there are no users with the focus role at all, then just say that.
     if not Focus_Role_object.members:
         string_to_send_to_users += "There are currently no users in focus mode right now."
-        await interaction.followup.send(content=string_to_send_to_users, ephemeral=False)
+        await interaction.channel.send(content=string_to_send_to_users)
 
     else:
         # if there are any users who had the focus role via the bot, list their info out.
@@ -176,7 +176,7 @@ async def display_all_in_focus_mode(interaction: discord.Interaction):
             string_to_send_to_users += f"{user.display_name}\n"
 
         # finally, send the message to the channel that we've spent all this time building.
-        await interaction.followup.send(content=string_to_send_to_users, ephemeral=True)
+        await interaction.channel.send(content=string_to_send_to_users)
 
 
 @tree.command(name="test_response", description="If the bot is truly online, it will respond back with a response.")

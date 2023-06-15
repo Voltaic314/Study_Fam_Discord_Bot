@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 import secrets
+import time_modulation
 from time_modulation import Time_Stuff
 from database import Database
 import os
@@ -24,6 +25,9 @@ class Focus_Bot_Client(discord.Client):
 
         # when we start up the bot, run the check to remove anyone in the database who shouldn't be in there anymore.
         self.loop.create_task(self.role_and_db_removal())
+
+        # Start the message posting loop
+        await start_message_interval()
 
     async def role_and_db_removal(self):
         await self.wait_until_ready()
@@ -264,6 +268,34 @@ async def give_endless_focus_mode(interaction: discord.Interaction):
     await interaction.response.send_message(appropriate_response, ephemeral=True)
     await interaction.user.add_roles(Focus_Role_object)
     print(f"Successfully given Focus role to {interaction.user.display_name}")
+
+
+# Function to post a random message in the specified channel
+async def post_channel_message(channel_id: int, message: str):
+    channel = client.get_channel(channel_id)
+    await channel.send(message)
+
+
+# Function to start posting messages on a fixed interval (every hour)
+async def start_message_interval():
+    client.start_time = time_modulation.Time_Stuff.get_current_time_in_epochs()
+
+    while True:
+        # Get the current epoch time
+        current_time = time_modulation.Time_Stuff.get_current_time_in_epochs()
+
+        # Calculate the elapsed time since the last message post
+        elapsed_time = current_time - client.start_time
+
+        # Check if an hour has passed since the last message post
+        if elapsed_time >= 3600:
+            SELF_CARE_CHANNEL_ID = secrets.discord_bot_credentials["Self_Care_Channel_ID"]
+            message = "Posture & hydration check! I'm watching you! :eyes:"
+            await post_channel_message(SELF_CARE_CHANNEL_ID, message)
+            client.start_time = current_time  # Update the start time to the current time
+
+        await asyncio.sleep(60)  # Check every minute for elapsed time
+
 
 TOKEN = secrets.discord_bot_credentials["API_Key"]
 client.run(TOKEN)

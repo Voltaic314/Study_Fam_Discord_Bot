@@ -80,8 +80,8 @@ class Focus_Bot_Client(discord.Client):
             # Calculate the elapsed time since the last message post
             elapsed_time = current_time - client.start_time
 
-            # Check if an hour has passed since the last message post
-            if elapsed_time >= 3600:
+            # Check if 2 hours has passed since the last message post
+            if elapsed_time >= 7200:
                 await post_channel_message(SELF_CARE_CHANNEL_ID, message)
                 client.start_time = current_time  # Update the start time to the current time
 

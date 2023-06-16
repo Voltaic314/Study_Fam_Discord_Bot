@@ -27,7 +27,7 @@ class Focus_Bot_Client(discord.Client):
         self.loop.create_task(self.role_and_db_removal())
 
         # Start the message posting loop
-        await start_message_interval()
+        self.loop.create_task(self.self_care_reminder_time_loop())
 
     async def role_and_db_removal(self):
         await self.wait_until_ready()
@@ -57,6 +57,32 @@ class Focus_Bot_Client(discord.Client):
                             User_ID=entry[1])
 
             await asyncio.sleep(60)
+
+    # Function to start posting messages on a fixed interval (every hour)
+    async def self_care_reminder_time_loop(self):
+        await self.wait_until_ready()
+
+        # get the initial start up time
+        client.start_time = time_modulation.Time_Stuff.get_current_time_in_epochs()
+
+        # Basically this bit is so the bot doesn't try to execute this code until it has successfully connected to
+        # discord's servers. :)
+        while not self.is_closed():
+
+            # Get the current epoch time as of re-looping around or the first inital time.
+            current_time = time_modulation.Time_Stuff.get_current_time_in_epochs()
+
+            # Calculate the elapsed time since the last message post
+            elapsed_time = current_time - client.start_time
+
+            # Check if an hour has passed since the last message post
+            if elapsed_time >= 3600:
+                SELF_CARE_CHANNEL_ID = secrets.discord_bot_credentials["Self_Care_Channel_ID"]
+                message = "Posture & hydration check! I'm watching you! :eyes:"
+                await post_channel_message(SELF_CARE_CHANNEL_ID, message)
+                client.start_time = current_time  # Update the start time to the current time
+
+            await asyncio.sleep(60)  # Check every minute for elapsed time
 
 
 client = Focus_Bot_Client()
@@ -274,27 +300,6 @@ async def give_endless_focus_mode(interaction: discord.Interaction):
 async def post_channel_message(channel_id: int, message: str):
     channel = client.get_channel(channel_id)
     await channel.send(message)
-
-
-# Function to start posting messages on a fixed interval (every hour)
-async def start_message_interval():
-    client.start_time = time_modulation.Time_Stuff.get_current_time_in_epochs()
-
-    while True:
-        # Get the current epoch time
-        current_time = time_modulation.Time_Stuff.get_current_time_in_epochs()
-
-        # Calculate the elapsed time since the last message post
-        elapsed_time = current_time - client.start_time
-
-        # Check if an hour has passed since the last message post
-        if elapsed_time >= 3600:
-            SELF_CARE_CHANNEL_ID = secrets.discord_bot_credentials["Self_Care_Channel_ID"]
-            message = "Posture & hydration check! I'm watching you! :eyes:"
-            await post_channel_message(SELF_CARE_CHANNEL_ID, message)
-            client.start_time = current_time  # Update the start time to the current time
-
-        await asyncio.sleep(60)  # Check every minute for elapsed time
 
 
 TOKEN = secrets.discord_bot_credentials["API_Key"]

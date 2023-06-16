@@ -35,7 +35,7 @@ class Focus_Bot_Client(discord.Client):
         server_id = secrets.discord_bot_credentials["Server_ID_for_Study_Fam"]
         guild = client.get_guild(server_id)
 
-        while not self.is_closed():
+        while True:
 
             # This is a list of tuples, where each item in the tuple is a cell in the row.
             database_entries = database_instance.retrieve_values_from_table("Study_Fam_People_Currently_In_Focus_Mode")
@@ -62,13 +62,18 @@ class Focus_Bot_Client(discord.Client):
     async def self_care_reminder_time_loop(self):
         await self.wait_until_ready()
 
+        SELF_CARE_CHANNEL_ID = secrets.discord_bot_credentials["Self_Care_Channel_ID"]
+        message = "Posture & hydration check! I'm watching you! :eyes:"
+
         # get the initial start up time
         client.start_time = time_modulation.Time_Stuff.get_current_time_in_epochs()
 
-        # Basically this bit is so the bot doesn't try to execute this code until it has successfully connected to
-        # discord's servers. :)
-        while not self.is_closed():
+        # Make the initial post once the bot starts up. (Ideally you'd store this in a database to be standardized...
+        # in case the bot ever loses power or something and reboots.
+        # TODO: make db table for this and use that to keep track of when to post this every hour.
+        await post_channel_message(SELF_CARE_CHANNEL_ID, message)
 
+        while True:
             # Get the current epoch time as of re-looping around or the first inital time.
             current_time = time_modulation.Time_Stuff.get_current_time_in_epochs()
 
@@ -77,8 +82,6 @@ class Focus_Bot_Client(discord.Client):
 
             # Check if an hour has passed since the last message post
             if elapsed_time >= 3600:
-                SELF_CARE_CHANNEL_ID = secrets.discord_bot_credentials["Self_Care_Channel_ID"]
-                message = "Posture & hydration check! I'm watching you! :eyes:"
                 await post_channel_message(SELF_CARE_CHANNEL_ID, message)
                 client.start_time = current_time  # Update the start time to the current time
 

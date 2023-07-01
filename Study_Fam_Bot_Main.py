@@ -27,7 +27,8 @@ class Focus_Bot_Client(discord.Client):
         self.loop.create_task(self.role_and_db_removal())
 
         # Start the message posting loop
-        self.loop.create_task(self.self_care_reminder_time_loop())
+        # TODO: Resume self care reminder functionality soon (preferably once I figure out a less spammy & annoying way to do it)
+        # self.loop.create_task(self.self_care_reminder_time_loop())
 
     async def role_and_db_removal(self):
         await self.wait_until_ready()

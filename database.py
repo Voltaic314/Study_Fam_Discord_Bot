@@ -62,6 +62,10 @@ class Database:
         self.cursor.execute(f"DELETE FROM {name_of_table} WHERE User_ID = {User_ID}")
         self.connect.commit()
 
+    def delete_message_from_table(self, name_of_table: str, Message_ID: int):
+        self.cursor.execute(f"DELETE FROM {name_of_table} WHERE message_id = {Message_ID}")
+        self.connect.commit()
+
     def update_user_info_from_table(self, name_of_table: str, User_ID: int, time_to_update: float):
 
         # fetch the lastest listing in the db for that user
@@ -130,3 +134,4 @@ class Database:
 CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 DB_PATH_AND_NAME = os.path.join(CURRENT_DIRECTORY, "Focus_Mode_Info.db")
 database_instance = Database(DB_PATH_AND_NAME)
+

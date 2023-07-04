@@ -24,17 +24,33 @@ class Focus_Bot_Client(discord.Client):
         print(f"We have logged in as {self.user}.")
 
         # when we start up the bot, run the check to remove anyone in the database who shouldn't be in there anymore.
-        self.loop.create_task(self.role_and_db_removal())
+        self.loop.create_task(self.bot_routines())
 
         # Start the message posting loop
         # TODO: Resume self care reminder functionality soon (preferably once I figure out a less spammy & annoying way to do it)
         # self.loop.create_task(self.self_care_reminder_time_loop())
 
-    async def role_and_db_removal(self):
+    @staticmethod
+    async def on_message(message):
+        # Check if the message was sent in the desired channel and server
+        if message.channel.id == secrets.discord_bot_credentials["Auto_Delete_Channel_ID"]:
+            if message.guild.id == secrets.discord_bot_credentials["Server_ID_for_Study_Fam"]:
+
+                # set up & define our data to be logged to the table
+                current_time = time_modulation.Time_Stuff.get_current_time_in_epochs()
+                end_time_for_message = current_time + 86400
+
+                data_to_be_logged = (message.id, current_time, end_time_for_message)
+
+                # Log the message information
+                database_instance.log_to_DB(data_to_be_logged, "messages")
+
+    async def bot_routines(self):
         await self.wait_until_ready()
 
         server_id = secrets.discord_bot_credentials["Server_ID_for_Study_Fam"]
         guild = client.get_guild(server_id)
+        channel = guild.get_channel(secrets.discord_bot_credentials["Auto_Delete_Channel_ID"])
 
         while True:
 
@@ -56,6 +72,40 @@ class Focus_Bot_Client(discord.Client):
                         database_instance.delete_user_info_from_table(
                             name_of_table="Study_Fam_People_Currently_In_Focus_Mode",
                             User_ID=entry[1])
+
+            # now we'll look to see if any messages need to be deleted from the auto delete channel
+            # build our list of tuples from the sqlite database.
+            database_entries = database_instance.retrieve_values_from_table("messages")
+
+            if database_entries:
+
+                for entry in database_entries:
+                    current_time = Time_Stuff.get_current_time_in_epochs()
+                    message_id = entry[0]
+                    message_end_time = entry[2]
+
+                    # check to see if the user is past their expired focus ending time. If so, remove them from the
+                    # database and remove their focus role. Do this for every user in the database.
+                    if message_end_time <= current_time:
+
+                        # try to delete the message if it's there. If not just say it's not there and move on.
+                        try:
+                            message = await channel.fetch_message(message_id)
+
+                            # check to make sure the message is not pinned, if it's pinned we don't want to delete it.
+                            if not message.pinned:
+                                await message.delete()  # delete the message from the discord channel
+
+                                # delete the message from the sql table as well.
+                                database_instance.delete_message_from_table(
+                                    name_of_table="messages",
+                                    Message_ID=message_id)
+
+                        # if the message isn't in the channel anymore, let's delete it from our database.
+                        except discord.NotFound:
+                            database_instance.delete_message_from_table(
+                                name_of_table="messages",
+                                Message_ID=message_id)
 
             await asyncio.sleep(60)
 

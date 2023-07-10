@@ -27,8 +27,7 @@ class Focus_Bot_Client(discord.Client):
         self.loop.create_task(self.bot_routines())
 
         # Start the message posting loop
-        # TODO: Resume self care reminder functionality soon (preferably once I figure out a less spammy & annoying way to do it)
-        # self.loop.create_task(self.self_care_reminder_time_loop())
+        self.loop.create_task(self.self_care_reminder_time_loop())
 
     @staticmethod
     async def on_message(message):

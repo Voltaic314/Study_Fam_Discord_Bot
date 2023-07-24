@@ -256,9 +256,10 @@ async def display_all_in_focus_mode(interaction: discord.Interaction):
                                            f"{Time_Stuff.convert_epochs_to_human_readable_time(entry[2])}, \n\n"
 
         # for anyone else who is in focus not via the bot, list them out too.
-        string_to_send_to_users += "Users in focus (not in the database) include: \n"
-        for user in non_database_users_in_focus:
-            string_to_send_to_users += f"{user.display_name}\n"
+        if non_database_users_in_focus:
+            string_to_send_to_users += "Users in focus (not in the database) include: \n"
+            for user in non_database_users_in_focus:
+                string_to_send_to_users += f"{user.display_name}\n"
 
         # finally, send the message to the channel that we've spent all this time building.
         await interaction.channel.send(content=string_to_send_to_users)

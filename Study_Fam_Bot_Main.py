@@ -1,7 +1,6 @@
 import discord
 from discord import app_commands
 import secrets
-import time_modulation
 from time_modulation import Time_Stuff
 from database import Database
 import os

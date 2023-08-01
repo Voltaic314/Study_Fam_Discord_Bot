@@ -38,7 +38,7 @@ class Focus_Bot_Client(discord.Client):
             if message.guild.id == secrets.discord_bot_credentials["Server_ID_for_Study_Fam"]:
 
                 # set up & define our data to be logged to the table
-                current_time = time_modulation.Time_Stuff.get_current_time_in_epochs()
+                current_time = Time_Stuff.get_current_time_in_epochs()
                 end_time_for_message = current_time + 86400
 
                 data_to_be_logged = (message.id, current_time, end_time_for_message)
@@ -75,38 +75,10 @@ class Focus_Bot_Client(discord.Client):
                             User_ID=entry[1])
 
             # now we'll look to see if any messages need to be deleted from the auto delete channel
-            # build our list of tuples from the sqlite database.
-            database_entries = database_instance.retrieve_values_from_table("messages")
-
-            if database_entries:
-
-                for entry in database_entries:
-                    current_time = Time_Stuff.get_current_time_in_epochs()
-                    message_id = entry[0]
-                    message_end_time = entry[2]
-
-                    # check to see if the user is past their expired focus ending time. If so, remove them from the
-                    # database and remove their focus role. Do this for every user in the database.
-                    if message_end_time <= current_time:
-
-                        # try to delete the message if it's there. If not just say it's not there and move on.
-                        try:
-                            message = await channel.fetch_message(message_id)
-
-                            # check to make sure the message is not pinned, if it's pinned we don't want to delete it.
-                            if not message.pinned:
-                                await message.delete()  # delete the message from the discord channel
-
-                                # delete the message from the sql table as well.
-                                database_instance.delete_message_from_table(
-                                    name_of_table="messages",
-                                    Message_ID=message_id)
-
-                        # if the message isn't in the channel anymore, let's delete it from our database.
-                        except discord.NotFound:
-                            database_instance.delete_message_from_table(
-                                name_of_table="messages",
-                                Message_ID=message_id)
+            # if so, then delete them, if not just ignore.
+            async for message in channel.history(limit=None, oldest_first=True):
+                if not message.pinned and Time_Stuff.is_input_time_over_24_hours_ago(message.created_at):
+                    await message.delete()
 
             await asyncio.sleep(60)
 
@@ -118,7 +90,7 @@ class Focus_Bot_Client(discord.Client):
         message = "Posture & hydration check! I'm watching you! :eyes:"
 
         # get the initial start up time
-        client.start_time = time_modulation.Time_Stuff.get_current_time_in_epochs()
+        client.start_time = Time_Stuff.get_current_time_in_epochs()
 
         # Make the initial post once the bot starts up. (Ideally you'd store this in a database to be standardized...
         # in case the bot ever loses power or something and reboots.
@@ -127,7 +99,7 @@ class Focus_Bot_Client(discord.Client):
 
         while True:
             # Get the current epoch time as of re-looping around or the first inital time.
-            current_time = time_modulation.Time_Stuff.get_current_time_in_epochs()
+            current_time = Time_Stuff.get_current_time_in_epochs()
 
             # Calculate the elapsed time since the last message post
             elapsed_time = current_time - client.start_time

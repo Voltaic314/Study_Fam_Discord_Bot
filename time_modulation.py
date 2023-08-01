@@ -1,4 +1,5 @@
 import time
+from datetime import datetime, timedelta
 import math
 
 
@@ -13,14 +14,14 @@ class Time_Stuff:
         return time.ctime(float(math.floor(epochs)))
 
     @staticmethod
-    def how_many_minutes_apart(epoch_time_one: float, epoch_time_two: float) -> list[int]:
+    def how_many_minutes_apart(epoch_time_one: float, epoch_time_two: float) -> list[float]:
         """
         This function takes 2 times in epoch seconds that are floats and returns a list with 3 integers provided in the
         format of minutes, hours, days in ascending order. This can be used for reference when the user wants to check
         how much time they have left in focus mode.
         :param epoch_time_one: float that represents the time in epochs
         :param epoch_time_two: float #2 that also represents the time in epochs.
-        :returns: list of integers of how much time is left in a human-readable format. ex: [minutes, hours, days]
+        :returns: list of floats of how much time is left in a human-readable format. ex: [minutes, hours, days]
         """
         time_diff = abs(epoch_time_one - epoch_time_two)
         minutes = (time_diff // 60) % 60
@@ -66,3 +67,14 @@ class Time_Stuff:
 
         else:
             return "Please input a number of minutes that is between 1 and 1440"
+
+    @staticmethod
+    def is_input_time_over_24_hours_ago(input_time_in_epochs):
+        """
+        Takes an input time in epoch seconds and determines if this time is over 24 hours old.
+        :param input_time_in_epochs: an input time that is specifically in epoch seconds. like time.time()
+        :returns: True if the time is over 24 hours old, false otherwise.
+        """
+        time_difference_of_current_vs_input = input_time_in_epochs - time.time()
+        one_day_in_epoch_seconds = 86400
+        return time_difference_of_current_vs_input >= one_day_in_epoch_seconds

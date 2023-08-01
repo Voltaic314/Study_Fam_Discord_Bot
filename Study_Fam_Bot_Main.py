@@ -77,7 +77,7 @@ class Focus_Bot_Client(discord.Client):
             # now we'll look to see if any messages need to be deleted from the auto delete channel
             # if so, then delete them, if not just ignore.
             async for message in channel.history(limit=None, oldest_first=True):
-                if not message.pinned and Time_Stuff.is_input_time_over_24_hours_ago(message.created_at):
+                if not message.pinned and Time_Stuff.is_input_time_over_24_hours_ago(message.created_at.timestamp()):
                     await message.delete()
 
             await asyncio.sleep(60)

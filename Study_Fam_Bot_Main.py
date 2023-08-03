@@ -31,21 +31,6 @@ class Focus_Bot_Client(discord.Client):
         # Start the message posting loop
         self.loop.create_task(self.self_care_reminder_time_loop())
 
-    @staticmethod
-    async def on_message(message):
-        # Check if the message was sent in the desired channel and server
-        if message.channel.id == secrets.discord_bot_credentials["Auto_Delete_Channel_ID"]:
-            if message.guild.id == secrets.discord_bot_credentials["Server_ID_for_Study_Fam"]:
-
-                # set up & define our data to be logged to the table
-                current_time = Time_Stuff.get_current_time_in_epochs()
-                end_time_for_message = current_time + 86400
-
-                data_to_be_logged = (message.id, current_time, end_time_for_message)
-
-                # Log the message information
-                database_instance.log_to_DB(data_to_be_logged, "messages")
-
     async def bot_routines(self):
         await self.wait_until_ready()
 

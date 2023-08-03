@@ -75,6 +75,7 @@ class Time_Stuff:
         :param input_time_in_epochs: an input time that is specifically in epoch seconds. like time.time()
         :returns: True if the time is over 24 hours old, false otherwise.
         """
-        time_difference_of_current_vs_input = input_time_in_epochs - time.time()
+        current_time = time.time()
         one_day_in_epoch_seconds = 86400
+        time_difference_of_current_vs_input = current_time - input_time_in_epochs
         return time_difference_of_current_vs_input >= one_day_in_epoch_seconds

@@ -72,27 +72,29 @@ class Focus_Bot_Client(discord.Client):
         await self.wait_until_ready()
 
         SELF_CARE_CHANNEL_ID = secrets.discord_bot_credentials["Self_Care_Channel_ID"]
-        message = "Posture & hydration check! I'm watching you! :eyes:"
+        server_id = secrets.discord_bot_credentials["Server_ID_for_Study_Fam"]
+        guild = client.get_guild(server_id)
+        channel = guild.get_channel(secrets.discord_bot_credentials["Self_Care_Channel_ID"])
+        message_to_send = "Posture & hydration check! I'm watching you! :eyes:"
 
         # get the initial start up time
         client.start_time = Time_Stuff.get_current_time_in_epochs()
-
-        # Make the initial post once the bot starts up. (Ideally you'd store this in a database to be standardized...
-        # in case the bot ever loses power or something and reboots.
-        # TODO: make db table for this and use that to keep track of when to post this every hour.
-        await post_channel_message(SELF_CARE_CHANNEL_ID, message)
 
         while True:
             # Get the current epoch time as of re-looping around or the first inital time.
             current_time = Time_Stuff.get_current_time_in_epochs()
 
-            # Calculate the elapsed time since the last message post
-            elapsed_time = current_time - client.start_time
+            async for message in channel.history(limit=None, oldest_first=False):
+                if message.author == client.user and not message.pinned:
+                    last_time_the_bot_sent_a_message = message.created_at.timestamp()
 
-            # Check if 2 hours has passed since the last message post
-            if elapsed_time >= 7200:
-                await post_channel_message(SELF_CARE_CHANNEL_ID, message)
-                client.start_time = current_time  # Update the start time to the current time
+                    # Calculate the elapsed time since the last message post
+                    message_needs_to_be_sent = current_time - last_time_the_bot_sent_a_message >= 7200
+
+                    # Check if 2 hours has passed since the last message post
+                    if message_needs_to_be_sent:
+                        await post_channel_message(SELF_CARE_CHANNEL_ID, message_to_send)
+                        client.start_time = current_time  # Update the start time to the current time
 
             await asyncio.sleep(60)  # Check every minute for elapsed time
 

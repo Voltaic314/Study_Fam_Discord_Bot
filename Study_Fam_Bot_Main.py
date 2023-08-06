@@ -80,19 +80,33 @@ class Focus_Bot_Client(discord.Client):
         await self.wait_until_ready()
 
         self_care_logged_entries = database_instance.retrieve_values_from_table("Self_Care_Log_Table")
-        time_of_last_logged_message = self_care_logged_entries[-1][0]
 
-        last_message_id, last_message_sent_time = client.get_last_message_info_from_discord(channel, client.user.id)
+        if self_care_logged_entries:
+            time_of_last_logged_message = self_care_logged_entries[-1][0]
 
-        log_table_needs_to_be_updated = last_message_sent_time >= time_of_last_logged_message
-        if log_table_needs_to_be_updated:
+            last_message_id, last_message_sent_time = client.get_last_message_info_from_discord(channel, client.user.id)
+
+            log_table_needs_to_be_updated = last_message_sent_time >= time_of_last_logged_message
+            if log_table_needs_to_be_updated:
+
+                # Then delete the last logged message we have
+                database_instance.delete_self_care_time_from_table("Self_Care_Log_Table",
+                                                                   time_of_last_logged_message)
+
+                # And update our entry so the table can be up-to-date.
+                info_to_log = (last_message_sent_time, last_message_sent_time + 7200, last_message_id)
+                database_instance.log_to_DB(info_to_log, "Self_Care_Log_Table")
+
+        else:
+            last_sent_message_id, last_sent_message_time = await self.get_last_message_info_from_discord(channel=channel,
+                                                                                                         user_id=client.user.id)
 
             # Then delete the last logged message we have
             database_instance.delete_self_care_time_from_table("Self_Care_Log_Table",
-                                                               time_of_last_logged_message)
+                                                               last_sent_message_time)
 
             # And update our entry so the table can be up-to-date.
-            info_to_log = (last_message_sent_time, last_message_sent_time + 7200, last_message_id)
+            info_to_log = (last_sent_message_time, last_sent_message_time + 7200, last_sent_message_id)
             database_instance.log_to_DB(info_to_log, "Self_Care_Log_Table")
 
     # Function to start posting messages on a fixed interval (every hour)

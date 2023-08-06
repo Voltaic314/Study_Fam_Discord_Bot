@@ -52,10 +52,16 @@ class Database:
         return list_of_tuple_of_items
 
     ## Built the database with these columns
-    def build_database(self):
+    def build_focus_mode_table(self):
         self.cursor.execute(
             "CREATE TABLE Study_Fam_People_Currently_In_Focus_Mode (Username text, User_ID integer, "
             "Epoch_End_Time_for_User_Focus_Mode real, Start_of_Session_Time text) ")
+        self.connect.commit()
+
+    def build_self_care_log_table(self):
+        self.cursor.execute(
+            "CREATE TABLE Self_Care_Log_Table (last_message_sent_epoch_time real, next_message_time_to_send real,"
+            " last_message_sent_id integer) ")
         self.connect.commit()
 
     def delete_user_info_from_table(self, name_of_table: str, User_ID: int):
@@ -64,6 +70,10 @@ class Database:
 
     def delete_message_from_table(self, name_of_table: str, Message_ID: int):
         self.cursor.execute(f"DELETE FROM {name_of_table} WHERE message_id = {Message_ID}")
+        self.connect.commit()
+
+    def delete_self_care_time_from_table(self, name_of_table: str, message_sent_epoch_time: float):
+        self.cursor.execute(f"DELETE FROM {name_of_table} WHERE last_message_sent_epoch_time = {message_sent_epoch_time}")
         self.connect.commit()
 
     def update_user_info_from_table(self, name_of_table: str, User_ID: int, time_to_update: float):
@@ -134,4 +144,3 @@ class Database:
 CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 DB_PATH_AND_NAME = os.path.join(CURRENT_DIRECTORY, "Focus_Mode_Info.db")
 database_instance = Database(DB_PATH_AND_NAME)
-

@@ -178,6 +178,21 @@ DB_PATH_AND_NAME = os.path.join(CURRENT_DIRECTORY, "Focus_Mode_Info.db")
 database_instance = Database(DB_PATH_AND_NAME)
 
 
+@client.event
+async def on_carl_bot_message_in_drk_channel(message):
+
+    # Defining our variables for our function here
+    Dr_K_Content_Ping_Role_ID = 1138514811114770522
+    Dr_K_Content_Ping_Role = message.guild.get_role(Dr_K_Content_Ping_Role_ID)
+    Content_Channel_ID = 1078121853266165870
+    Carl_Bot_User_ID = 235148962103951360
+
+    # If a message was sent by carl bot and within the content channel, then ping everyone.
+    if message.author.id == Carl_Bot_User_ID and message.channel.id == Content_Channel_ID:
+        if "HealthyGamerGG" in message.content:
+            await post_channel_message(message.channel.id, f"{Dr_K_Content_Ping_Role.mention}")
+
+
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")
 async def FocusMode(interaction: discord.Interaction, minutes: int):
     Focus_Role_object = interaction.guild.get_role(Focus_Role_int)

@@ -26,7 +26,7 @@ class Focus_Bot_Client(discord.Client):
         self.loop.create_task(self.bot_routines())
 
         # Offset the first message to fall on exactly an even hour since the pi reboots at 11:55 pm, we will do 5 min.
-        await asyncio.sleep(300)
+        # await asyncio.sleep(300)
 
         # Start the message posting loop
         self.loop.create_task(self.self_care_reminder_time_loop())
@@ -142,8 +142,9 @@ class Focus_Bot_Client(discord.Client):
                 # Delete all previous unpinned messages from the bot before we post our new reminder.
                 async for message in self_care_channel.history(limit=None, oldest_first=True):
                     if message.author == client.user and not message.pinned:
-                        if message.id != self_care_logged_entries[-1][2]:
-                            await message.delete()
+                        if self_care_logged_entries:
+                            if message.id != self_care_logged_entries[-1][2]:
+                                await message.delete()
 
                 # also delete the most recent db entry from the table and then post a new entry.
                 if self_care_logged_entries:

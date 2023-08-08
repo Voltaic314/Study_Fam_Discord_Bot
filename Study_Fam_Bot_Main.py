@@ -26,7 +26,7 @@ class Focus_Bot_Client(discord.Client):
         self.loop.create_task(self.bot_routines())
 
         # Offset the first message to fall on exactly an even hour since the pi reboots at 11:55 pm, we will do 5 min.
-        # await asyncio.sleep(300)
+        await asyncio.sleep(300)
 
         # Start the message posting loop
         self.loop.create_task(self.self_care_reminder_time_loop())

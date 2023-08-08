@@ -67,47 +67,50 @@ class Focus_Bot_Client(discord.Client):
 
             await asyncio.sleep(60)
 
-    async def get_last_message_info_from_discord(self, channel: object, user_id):
-        await self.wait_until_ready()
-
-        # check if the most recent message is already logged in the database, if not, log it.
-        async for message in channel.history(limit=None, oldest_first=False):
-            if message.author.id == user_id and not message.pinned:
-                return message.id, message.created_at.timestamp()
-
     # Function that will run only once the bot starts up.
     async def self_care_message_manager(self, channel: object):
         await self.wait_until_ready()
 
         self_care_logged_entries = database_instance.retrieve_values_from_table("Self_Care_Log_Table")
 
+        current_time = Time_Stuff.get_current_time_in_epochs()
+        current_time_plus_two_hours = current_time + 7200
+
+        async for message in channel.history(limit=None, oldest_first=False):
+            if message.author == client.user and not message.pinned:
+                last_sent_message_id = message.id
+
+                if self_care_logged_entries:
+                    time_of_last_logged_message = self_care_logged_entries[-1][0]
+
+                    log_table_needs_to_be_updated = current_time - 7200 >= time_of_last_logged_message
+                    if log_table_needs_to_be_updated:
+
+                        # Then delete the last logged message we have
+                        database_instance.delete_self_care_time_from_table("Self_Care_Log_Table",
+                                                                           time_of_last_logged_message)
+
+                        # And update our entry so the table can be up-to-date.
+                        info_to_log = (current_time, current_time_plus_two_hours, last_sent_message_id)
+                        database_instance.log_to_DB(info_to_log, "Self_Care_Log_Table")
+
+    # Function to return our last self-care message we have logged.
+    async def self_care_message_needs_to_be_sent(self):
+        await self.wait_until_ready()
+        self_care_logged_entries = database_instance.retrieve_values_from_table("Self_Care_Log_Table")
         if self_care_logged_entries:
-            time_of_last_logged_message = self_care_logged_entries[-1][0]
+            epoch_of_last_sent_message = self_care_logged_entries[-1][0]
 
-            last_message_id, last_message_sent_time = client.get_last_message_info_from_discord(channel, client.user.id)
+            # Get the current epoch time as of re-looping around or the first inital time.
+            current_time = Time_Stuff.get_current_time_in_epochs()
 
-            log_table_needs_to_be_updated = last_message_sent_time >= time_of_last_logged_message
-            if log_table_needs_to_be_updated:
+            # Calculate the elapsed time since the last message post
+            message_needs_to_be_sent = current_time - epoch_of_last_sent_message >= 7200
 
-                # Then delete the last logged message we have
-                database_instance.delete_self_care_time_from_table("Self_Care_Log_Table",
-                                                                   time_of_last_logged_message)
-
-                # And update our entry so the table can be up-to-date.
-                info_to_log = (last_message_sent_time, last_message_sent_time + 7200, last_message_id)
-                database_instance.log_to_DB(info_to_log, "Self_Care_Log_Table")
+            return message_needs_to_be_sent
 
         else:
-            last_sent_message_id, last_sent_message_time = await self.get_last_message_info_from_discord(channel=channel,
-                                                                                                         user_id=client.user.id)
-
-            # Then delete the last logged message we have
-            database_instance.delete_self_care_time_from_table("Self_Care_Log_Table",
-                                                               last_sent_message_time)
-
-            # And update our entry so the table can be up-to-date.
-            info_to_log = (last_sent_message_time, last_sent_message_time + 7200, last_sent_message_id)
-            database_instance.log_to_DB(info_to_log, "Self_Care_Log_Table")
+            return True
 
     # Function to start posting messages on a fixed interval (every hour)
     async def self_care_reminder_time_loop(self):
@@ -129,13 +132,9 @@ class Focus_Bot_Client(discord.Client):
 
             # retrieve the last sent message times from the database
             self_care_logged_entries = database_instance.retrieve_values_from_table("Self_Care_Log_Table")
-            epoch_of_last_sent_message = self_care_logged_entries[-1][0]
-
-            # Get the current epoch time as of re-looping around or the first inital time.
-            current_time = Time_Stuff.get_current_time_in_epochs()
 
             # Calculate the elapsed time since the last message post
-            message_needs_to_be_sent = current_time - epoch_of_last_sent_message >= 7200
+            message_needs_to_be_sent = await self.self_care_message_needs_to_be_sent()
 
             # Check if 2 hours has passed since the last message post
             if message_needs_to_be_sent:
@@ -147,15 +146,23 @@ class Focus_Bot_Client(discord.Client):
                             await message.delete()
 
                 # also delete the most recent db entry from the table and then post a new entry.
-                database_instance.delete_self_care_time_from_table("Self_Care_Log_Table", epoch_of_last_sent_message)
+                if self_care_logged_entries:
+                    epoch_of_last_sent_message = self_care_logged_entries[-1][0]
+                    database_instance.delete_self_care_time_from_table("Self_Care_Log_Table", epoch_of_last_sent_message)
                 await post_channel_message(SELF_CARE_CHANNEL_ID, self_care_message_to_send)
-                last_message_sent_time, last_message_id = await client.get_last_message_info_from_discord(self_care_channel,
-                                                                                                          client.user.id)
+                # check if the most recent message is already logged in the database, if not, log it.
+                async for message in self_care_channel.history(limit=None, oldest_first=False):
+                    if message.author.id == client.user.id and not message.pinned:
 
-                # After we get a successful database post, then we need to post that info to the db table. :)
-                info_to_log = (last_message_sent_time, last_message_sent_time + 7200, last_message_id)
-                database_instance.log_to_DB(info_to_log, "Self_Care_Log_Table")
-                client.start_time = current_time  # Update the start time to the current time
+                        # Defining our variables to be logged
+                        last_message_id = message.id
+                        current_time = Time_Stuff.get_current_time_in_epochs()
+                        current_time_plus_two_hours = current_time + 7200
+
+                        # After we get a successful database post, then we need to post that info to the db table. :)
+                        info_to_log = (current_time, current_time_plus_two_hours, last_message_id)
+                        database_instance.log_to_DB(info_to_log, "Self_Care_Log_Table")
+                        client.start_time = current_time  # Update the start time to the current time
 
             await asyncio.sleep(60)  # Check every minute for elapsed time
 

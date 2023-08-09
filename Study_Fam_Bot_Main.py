@@ -16,8 +16,6 @@ class Focus_Bot_Client(discord.Client):
         # define our variables
         self.server_id = secrets.discord_bot_credentials["Server_ID_for_Study_Fam"]
         self.SELF_CARE_CHANNEL_ID = secrets.discord_bot_credentials["Self_Care_Channel_ID"]
-        self.guild = client.get_guild(self.server_id)
-        self.self_care_channel = self.guild.get_channel(self.SELF_CARE_CHANNEL_ID)
 
     async def on_ready(self):
         # wait for the bot to be set up properly
@@ -35,7 +33,8 @@ class Focus_Bot_Client(discord.Client):
 
     async def bot_routines(self):
         await self.wait_until_ready()
-        auto_delete_channel = self.guild.get_channel(secrets.discord_bot_credentials["Auto_Delete_Channel_ID"])
+        guild = client.get_guild(self.server_id)
+        auto_delete_channel = guild.get_channel(secrets.discord_bot_credentials["Auto_Delete_Channel_ID"])
 
         while True:
 
@@ -47,12 +46,12 @@ class Focus_Bot_Client(discord.Client):
 
                 for entry in database_entries:
                     current_time = Time_Stuff.get_current_time_in_epochs()
-                    Focus_Role_object = discord.utils.get(self.guild.roles, name="Focus")
+                    Focus_Role_object = discord.utils.get(guild.roles, name="Focus")
 
                     # check to see if the user is past their expired focus ending time. If so, remove them from the
                     # database and remove their focus role. Do this for every user in the database.
                     if entry[2] <= current_time:
-                        current_user = await self.guild.fetch_member(entry[1])
+                        current_user = await guild.fetch_member(entry[1])
                         await current_user.remove_roles(Focus_Role_object)
                         database_instance.delete_user_info_from_table(
                             name_of_table="Study_Fam_People_Currently_In_Focus_Mode",
@@ -66,14 +65,18 @@ class Focus_Bot_Client(discord.Client):
 
             await asyncio.sleep(60)
 
-    # Function to start posting messages on a fixed interval (every hour)
+    # Function to start posting messages on a fixed interval (every 2 hours)
     async def self_care_reminder_time_loop(self):
         await self.wait_until_ready()
+
+        # define our variables for later on
+        guild = client.get_guild(self.server_id)
+        self_care_channel = guild.get_channel(self.SELF_CARE_CHANNEL_ID)
         self_care_message_to_send = "Posture & hydration check! I'm watching you! :eyes:"
 
         while True:
             # delete all previous unpinned messages from the bot to clear out the channel.
-            async for message in self.self_care_channel.history(limit=None, oldest_first=True):
+            async for message in self_care_channel.history(limit=None, oldest_first=True):
                 if message.author == client.user and not message.pinned:
                     await message.delete()
 

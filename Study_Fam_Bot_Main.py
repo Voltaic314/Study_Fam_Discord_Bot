@@ -80,8 +80,8 @@ class Focus_Bot_Client(discord.Client):
                 if message.author == client.user and not message.pinned:
                     await message.delete()
 
-                # post a new reminder message
-                await post_channel_message(self.SELF_CARE_CHANNEL_ID, self_care_message_to_send)
+            # post a new reminder message
+            await post_channel_message(self.SELF_CARE_CHANNEL_ID, self_care_message_to_send)
 
             # set up our variables for sleep time
             desired_amount_of_hours_to_sleep_for = 2

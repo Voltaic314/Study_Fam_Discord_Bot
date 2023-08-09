@@ -5,6 +5,7 @@ from time_modulation import Time_Stuff
 from database import Database
 import os
 import asyncio
+import random
 
 
 class Focus_Bot_Client(discord.Client):
@@ -73,20 +74,24 @@ class Focus_Bot_Client(discord.Client):
         guild = client.get_guild(self.server_id)
         self_care_channel = guild.get_channel(self.SELF_CARE_CHANNEL_ID)
         self_care_message_to_send = "Posture & hydration check! I'm watching you! :eyes:"
+        number_of_seconds_in_one_hour = 3600
+        number_of_seconds_in_four_hours = number_of_seconds_in_one_hour * 4
 
         while True:
+
             # delete all previous unpinned messages from the bot to clear out the channel.
             async for message in self_care_channel.history(limit=None, oldest_first=True):
-                if message.author == client.user and not message.pinned:
-                    await message.delete()
+                message_is_older_than_a_day = Time_Stuff.is_input_time_over_24_hours_ago(message.created_at.timestamp())
+                if message.author == client.user or message_is_older_than_a_day:
+                    if not message.pinned:
+                        await message.delete()
 
             # post a new reminder message
             await post_channel_message(self.SELF_CARE_CHANNEL_ID, self_care_message_to_send)
 
-            # set up our variables for sleep time
-            desired_amount_of_hours_to_sleep_for = 2
-            number_of_seconds_in_an_hour = 3600
-            sleep_time = desired_amount_of_hours_to_sleep_for * number_of_seconds_in_an_hour
+            # pick a random number of seconds to wait between 1 hour minimum and 4 hours maximum
+            # This ensures the bot will never post less than at least 6 times a day, but up to 24 times a day max.
+            sleep_time = random.randint(number_of_seconds_in_one_hour, number_of_seconds_in_four_hours)
 
             # sleep until it's time to post again.
             await asyncio.sleep(sleep_time)

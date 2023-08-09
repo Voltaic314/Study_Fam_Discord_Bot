@@ -2,3 +2,5 @@
 Focus_Mode_Info.db
 *.db
 __pycache__/secrets.cpython-39.pyc
+.idea/Focus_Mode_Discord_Bot.iml
+.idea/misc.xml

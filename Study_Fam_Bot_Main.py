@@ -13,6 +13,11 @@ class Focus_Bot_Client(discord.Client):
         intents.members = True  # Enable the GUILD_MEMBERS intent
         super().__init__(intents=intents)
         self.synced = False  # we use this so the bot doesn't sync commands more than once
+        # define our variables
+        self.server_id = secrets.discord_bot_credentials["Server_ID_for_Study_Fam"]
+        self.SELF_CARE_CHANNEL_ID = secrets.discord_bot_credentials["Self_Care_Channel_ID"]
+        self.guild = client.get_guild(self.server_id)
+        self.self_care_channel = self.guild.get_channel(self.SELF_CARE_CHANNEL_ID)
 
     async def on_ready(self):
         # wait for the bot to be set up properly
@@ -25,18 +30,12 @@ class Focus_Bot_Client(discord.Client):
         # when we start up the bot, run the check to remove anyone in the database who shouldn't be in there anymore.
         self.loop.create_task(self.bot_routines())
 
-        # Offset the first message to fall on exactly an even hour since the pi reboots at 11:55 pm, we will do 5 min.
-        await asyncio.sleep(300)
-
         # Start the message posting loop
         self.loop.create_task(self.self_care_reminder_time_loop())
 
     async def bot_routines(self):
         await self.wait_until_ready()
-
-        server_id = secrets.discord_bot_credentials["Server_ID_for_Study_Fam"]
-        guild = client.get_guild(server_id)
-        auto_delete_channel = guild.get_channel(secrets.discord_bot_credentials["Auto_Delete_Channel_ID"])
+        auto_delete_channel = self.guild.get_channel(secrets.discord_bot_credentials["Auto_Delete_Channel_ID"])
 
         while True:
 
@@ -48,12 +47,12 @@ class Focus_Bot_Client(discord.Client):
 
                 for entry in database_entries:
                     current_time = Time_Stuff.get_current_time_in_epochs()
-                    Focus_Role_object = discord.utils.get(guild.roles, name="Focus")
+                    Focus_Role_object = discord.utils.get(self.guild.roles, name="Focus")
 
                     # check to see if the user is past their expired focus ending time. If so, remove them from the
                     # database and remove their focus role. Do this for every user in the database.
                     if entry[2] <= current_time:
-                        current_user = await guild.fetch_member(entry[1])
+                        current_user = await self.guild.fetch_member(entry[1])
                         await current_user.remove_roles(Focus_Role_object)
                         database_instance.delete_user_info_from_table(
                             name_of_table="Study_Fam_People_Currently_In_Focus_Mode",
@@ -67,105 +66,27 @@ class Focus_Bot_Client(discord.Client):
 
             await asyncio.sleep(60)
 
-    # Function that will run only once the bot starts up.
-    async def self_care_message_manager(self, channel: object):
-        await self.wait_until_ready()
-
-        self_care_logged_entries = database_instance.retrieve_values_from_table("Self_Care_Log_Table")
-
-        current_time = Time_Stuff.get_current_time_in_epochs()
-        current_time_plus_two_hours = current_time + 7200
-
-        async for message in channel.history(limit=None, oldest_first=False):
-            if message.author == client.user and not message.pinned:
-                last_sent_message_id = message.id
-
-                if self_care_logged_entries:
-                    time_of_last_logged_message = self_care_logged_entries[-1][0]
-
-                    log_table_needs_to_be_updated = current_time - 7200 >= time_of_last_logged_message
-                    if log_table_needs_to_be_updated:
-
-                        # Then delete the last logged message we have
-                        database_instance.delete_self_care_time_from_table("Self_Care_Log_Table",
-                                                                           time_of_last_logged_message)
-
-                        # And update our entry so the table can be up-to-date.
-                        info_to_log = (current_time, current_time_plus_two_hours, last_sent_message_id)
-                        database_instance.log_to_DB(info_to_log, "Self_Care_Log_Table")
-
-    # Function to return our last self-care message we have logged.
-    async def self_care_message_needs_to_be_sent(self):
-        await self.wait_until_ready()
-        self_care_logged_entries = database_instance.retrieve_values_from_table("Self_Care_Log_Table")
-        if self_care_logged_entries:
-            epoch_of_last_sent_message = self_care_logged_entries[-1][0]
-
-            # Get the current epoch time as of re-looping around or the first inital time.
-            current_time = Time_Stuff.get_current_time_in_epochs()
-
-            # Calculate the elapsed time since the last message post
-            message_needs_to_be_sent = current_time - epoch_of_last_sent_message >= 7200
-
-            return message_needs_to_be_sent
-
-        else:
-            return True
-
     # Function to start posting messages on a fixed interval (every hour)
     async def self_care_reminder_time_loop(self):
         await self.wait_until_ready()
-
-        # define our variables
-        server_id = secrets.discord_bot_credentials["Server_ID_for_Study_Fam"]
-        SELF_CARE_CHANNEL_ID = secrets.discord_bot_credentials["Self_Care_Channel_ID"]
-        guild = client.get_guild(server_id)
-        self_care_channel = guild.get_channel(SELF_CARE_CHANNEL_ID)
         self_care_message_to_send = "Posture & hydration check! I'm watching you! :eyes:"
 
-        # get the initial start up time
-        client.start_time = Time_Stuff.get_current_time_in_epochs()
-
-        await client.self_care_message_manager(channel=self_care_channel)
-
         while True:
+            # delete all previous unpinned messages from the bot to clear out the channel.
+            async for message in self.self_care_channel.history(limit=None, oldest_first=True):
+                if message.author == client.user and not message.pinned:
+                    await message.delete()
 
-            # retrieve the last sent message times from the database
-            self_care_logged_entries = database_instance.retrieve_values_from_table("Self_Care_Log_Table")
+                # post a new reminder message
+                await post_channel_message(self.SELF_CARE_CHANNEL_ID, self_care_message_to_send)
 
-            # Calculate the elapsed time since the last message post
-            message_needs_to_be_sent = await self.self_care_message_needs_to_be_sent()
+            # set up our variables for sleep time
+            desired_amount_of_hours_to_sleep_for = 2
+            number_of_seconds_in_an_hour = 3600
+            sleep_time = desired_amount_of_hours_to_sleep_for * number_of_seconds_in_an_hour
 
-            # Check if 2 hours has passed since the last message post
-            if message_needs_to_be_sent:
-
-                # Delete all previous unpinned messages from the bot before we post our new reminder.
-                async for message in self_care_channel.history(limit=None, oldest_first=True):
-                    if message.author == client.user and not message.pinned:
-                        if self_care_logged_entries:
-                            if message.id != self_care_logged_entries[-1][2]:
-                                await message.delete()
-
-                # also delete the most recent db entry from the table and then post a new entry.
-                if self_care_logged_entries:
-                    epoch_of_last_sent_message = self_care_logged_entries[-1][0]
-                    database_instance.delete_self_care_time_from_table("Self_Care_Log_Table", epoch_of_last_sent_message)
-                await post_channel_message(SELF_CARE_CHANNEL_ID, self_care_message_to_send)
-                # check if the most recent message is already logged in the database, if not, log it.
-                async for message in self_care_channel.history(limit=None, oldest_first=False):
-                    if message.author.id == client.user.id and not message.pinned:
-
-                        # Defining our variables to be logged
-                        last_message_id = message.id
-                        current_time = Time_Stuff.get_current_time_in_epochs()
-                        current_time_plus_two_hours = current_time + 7200
-
-                        # After we get a successful database post, then we need to post that info to the db table. :)
-                        info_to_log = (current_time, current_time_plus_two_hours, last_message_id)
-                        database_instance.log_to_DB(info_to_log, "Self_Care_Log_Table")
-                        client.start_time = current_time  # Update the start time to the current time
-
-            await asyncio.sleep(60)  # Check every minute for elapsed time
+            # sleep until it's time to post again.
+            await asyncio.sleep(sleep_time)
 
 
 client = Focus_Bot_Client()
@@ -191,7 +112,7 @@ async def on_carl_bot_message_in_drk_channel(message):
     # If a message was sent by carl bot and within the content channel, then ping everyone.
     if message.author.id == Carl_Bot_User_ID and message.channel.id == Content_Channel_ID:
         if "HealthyGamerGG" in message.content:
-            await post_channel_message(message.channel.id, f"{Dr_K_Content_Ping_Role.mention}")
+            await post_channel_message(message.channel.id, f"{Dr_K_Content_Ping_Role.mention} - new Dr. K Content Posted!")
 
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")
@@ -216,8 +137,7 @@ async def FocusMode(interaction: discord.Interaction, minutes: int):
 
             if new_time > user_info_from_db[2]:
                 await interaction.followup.send(content=appropriate_response, ephemeral=True)
-                database_instance.update_user_info_from_table("Study_Fam_People_Currently_In_Focus_Mode",
-                                                              interaction.user.id, new_time)
+                database_instance.update_user_info_from_focus_table(interaction.user.id, new_time)
 
         # This will execute if the user is not in the database already. Thus, the user_info_from_db value is False.
         elif not user_info_from_db:
@@ -329,8 +249,7 @@ async def give_max_focus_time(interaction: discord.Interaction):
 
         if time_to_put_user_in_focus > user_info_from_db[2]:
             await interaction.followup.send(content=appropriate_response, ephemeral=True)
-            database_instance.update_user_info_from_table("Study_Fam_People_Currently_In_Focus_Mode",
-                                                          interaction.user.id, time_to_put_user_in_focus)
+            database_instance.update_user_info_from_focus_table(interaction.user.id, time_to_put_user_in_focus)
 
     # if the user is not already in the database, create an entry with the max focus time as their focus period.
     else:

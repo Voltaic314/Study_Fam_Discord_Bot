@@ -79,3 +79,33 @@ class Time_Stuff:
         one_day_in_epoch_seconds = 86400
         time_difference_of_current_vs_input = current_time - input_time_in_epochs
         return time_difference_of_current_vs_input >= one_day_in_epoch_seconds
+
+    @staticmethod
+    def next_occurrence_epoch(target_hour):
+        # Get the current time in epoch seconds
+        current_time = time.time()
+
+        # Get the current date in struct_time format
+        current_date = time.localtime(current_time)
+
+        # Calculate the next occurrence date by updating the hour
+        next_occurrence_date = time.struct_time((
+            current_date.tm_year,
+            current_date.tm_mon,
+            current_date.tm_mday,
+            target_hour,
+            0,  # Set minutes to 0
+            0,  # Set seconds to 0
+            current_date.tm_wday,
+            current_date.tm_yday,
+            current_date.tm_isdst
+        ))
+
+        # Convert the next occurrence date to epoch seconds
+        next_occurrence_epoch = time.mktime(next_occurrence_date)
+
+        # If the next occurrence is before the current time, add a day
+        if next_occurrence_epoch <= current_time:
+            next_occurrence_epoch += 24 * 60 * 60  # Add 1 day in seconds
+
+        return next_occurrence_epoch

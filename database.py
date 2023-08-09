@@ -18,6 +18,27 @@ class Database:
         # Which in my opinion is cleaner and easier to parse through.
         return [name for table_name in tuple_of_table_names for name in table_name]
 
+    @staticmethod
+    def format_tuple_into_string(formatted_tuple: tuple):
+        """
+        THe purpose of this function is to take a tuple of items in any order and create a (?) or (?, ?), kind of string
+        that can be inserted into sql statement strings like the insert into database kind of strings.
+        :param formatted_tuple: tuple containing the info that the user wishes to log to the database.
+        :returns: Formatted string to be used for the sql insertion string.
+        """
+
+        # The if is to make sure there is anything in the tuple at all, otherwise don't log anything to the database.
+        if formatted_tuple:
+            if len(formatted_tuple) > 1:
+                formatted_string = "("
+                formatted_string += "?, " * (len(formatted_tuple) - 1)
+                formatted_string += "?)"
+                return formatted_string
+
+            elif len(formatted_tuple) == 1:
+                formatted_string = "(?)"
+                return formatted_string
+
     def log_to_DB(self, formatted_tuple: tuple, table_to_add_values_to: str):
         """
         The purpose of this function is to log our grabbed info from the get_photo function over to the database
@@ -28,17 +49,9 @@ class Database:
 
         # The if is to make sure there is anything in the tuple at all, otherwise don't log anything to the database.
         if formatted_tuple:
-            if len(formatted_tuple) > 1:
-                formatted_string = "("
-                formatted_string += "?, " * (len(formatted_tuple) - 1)
-                formatted_string += "?)"
-                self.cursor.execute(f'INSERT INTO {table_to_add_values_to} VALUES {formatted_string}', formatted_tuple)
-                self.connect.commit()
-
-            elif len(formatted_tuple) == 1:
-                formatted_string = "(?)"
-                self.cursor.execute(f'INSERT INTO {table_to_add_values_to} VALUES {formatted_string}', formatted_tuple)
-                self.connect.commit()
+            formatted_string = self.format_tuple_into_string(formatted_tuple)
+            self.cursor.execute(f'INSERT INTO {table_to_add_values_to} VALUES {formatted_string}', formatted_tuple)
+            self.connect.commit()
 
     def retrieve_values_from_table(self, name_of_table_to_retrieve_from: str) -> list[tuple]:
         """
@@ -76,7 +89,7 @@ class Database:
         self.cursor.execute(f"DELETE FROM {name_of_table} WHERE last_message_sent_epoch_time = {message_sent_epoch_time}")
         self.connect.commit()
 
-    def update_user_info_from_table(self, name_of_table: str, User_ID: int, time_to_update: float):
+    def update_user_info_from_focus_table(self, User_ID: int, time_to_update: float):
 
         # fetch the lastest listing in the db for that user
         self.cursor.execute(f'SELECT * FROM Study_Fam_People_Currently_In_Focus_Mode')
@@ -92,10 +105,12 @@ class Database:
                 new_tuple_to_put_in_db = (user_display_name, User_ID, time_to_update, user_session_start_time)
 
                 # now that we have the new formatted data ready, delete the old listing.
-                self.cursor.execute(f"DELETE FROM {name_of_table} WHERE User_ID = {User_ID}")
+                self.cursor.execute(f"DELETE FROM Study_Fam_People_Currently_In_Focus_Mode WHERE User_ID = {User_ID}")
 
                 # insert new info into the database once we have the formatted data and previous entry deleted.
-                self.cursor.execute(f'INSERT INTO {name_of_table} VALUES (?, ?, ?, ?)', new_tuple_to_put_in_db)
+                self.cursor.execute(f'INSERT INTO Study_Fam_People_Currently_In_Focus_Mode VALUES (?, ?, ?, ?)',
+                                    new_tuple_to_put_in_db)
+
                 self.connect.commit()
 
     def check_if_user_in_database(self, user_ID: int):
@@ -111,32 +126,73 @@ class Database:
         else:
             return False
 
-    def remove_duplicates(self):
-        self.cursor.execute(f'SELECT * FROM Study_Fam_People_Currently_In_Focus_Mode')
+    def remove_duplicates_from_table(self, table_name):
+        self.cursor.execute(f'SELECT * FROM {table_name}')
         list_of_tuple_of_items = self.cursor.fetchall()
+
+        if not list_of_tuple_of_items:
+            return True
 
         list_of_entries_without_duplicates = []
 
-        for entry in list_of_tuple_of_items:
+        for i in range(len(list_of_tuple_of_items)):
+
+            entry = list_of_tuple_of_items[i]
 
             # if this is the first iteration, just add the first entry into the database.
-            if not list_of_entries_without_duplicates:
+            if i == 0:
                 list_of_entries_without_duplicates.append(entry)
 
             # if the new list is not empty (i.e. not the first iteration)
             if list_of_entries_without_duplicates:
                 for no_duplicate_entry in list_of_entries_without_duplicates:
-                    if entry[2] > no_duplicate_entry[2]:
-                        list_of_entries_without_duplicates.remove(no_duplicate_entry)
+                    if entry[2] != no_duplicate_entry[2]:
                         list_of_entries_without_duplicates.append(entry)
 
         # Remove all rows from the table
-        self.cursor.execute('DELETE FROM Study_Fam_People_Currently_In_Focus_Mode')
+        self.cursor.execute(f'DELETE FROM {table_name}')
 
         # Rewrite the rows with the new updated no duplicate info.
         for row in list_of_entries_without_duplicates:
-            self.cursor.execute('INSERT INTO Study_Fam_People_Currently_In_Focus_Mode VALUES (?, ?, ?, ?)', row)
+            formatted_string = self.format_tuple_into_string(row)
+            self.cursor.execute(f'INSERT INTO {table_name} VALUES {formatted_string}', row)
         self.connect.commit()
+        return True
+
+    def self_care_table_item_modifier(self, message_id: int, new_reminder_time: float) -> bool:
+        self_care_log_entries = self.retrieve_values_from_table("Self_Care_Log_Table")
+        if self_care_log_entries:
+            # fetch the lastest listing in the db for that user
+            self.cursor.execute(f'SELECT * FROM Self_Care_Log_Table WHERE last_message_sent_id = {message_id}')
+            list_of_tuple_of_items = self.cursor.fetchall()
+
+            # Before we do anything to the table, we need to clear out duplicates from it.
+            self.remove_duplicates_from_table("Self_Care_Log_Table")
+
+            for entry in list_of_tuple_of_items:
+
+                # format our data to get it ready for updating the db
+                time_message_was_posted = entry[0]
+                current_entry_message_id = entry[2]
+
+                if current_entry_message_id == message_id:
+                    time_message_will_post_again = new_reminder_time
+
+                    new_tuple_to_put_in_db = (time_message_was_posted, time_message_will_post_again,
+                                              current_entry_message_id)
+
+                    # now that we have the new formatted data ready, delete the old listing.
+                    self.cursor.execute(f"DELETE FROM Self_Care_Log_Table WHERE last_sent_message_id = {message_id}")
+
+                    # insert new info into the database once we have the formatted data and previous entry deleted.
+                    formatted_string = self.format_tuple_into_string(new_tuple_to_put_in_db)
+                    self.cursor.execute(f'INSERT INTO Self_Care_Log_Table VALUES {formatted_string}',
+                                        new_tuple_to_put_in_db)
+
+                    self.connect.commit()
+
+        else:
+            return False
 
 
 # get the current file path we're operating in, so we don't have to hard code this in.

@@ -12,6 +12,7 @@ class Focus_Bot_Client(discord.Client):
     def __init__(self):
         intents = discord.Intents.default()
         intents.members = True  # Enable the GUILD_MEMBERS intent
+        intents.messages = True
         super().__init__(intents=intents)
         self.synced = False  # we use this so the bot doesn't sync commands more than once
         # define our variables
@@ -34,6 +35,8 @@ class Focus_Bot_Client(discord.Client):
 
     async def bot_routines(self):
         await self.wait_until_ready()
+
+        # Passing in our variables to create our objects & object attributes.
         guild = client.get_guild(self.server_id)
         auto_delete_channel = guild.get_channel(secrets.discord_bot_credentials["Auto_Delete_Channel_ID"])
 
@@ -109,17 +112,19 @@ database_instance = Database(DB_PATH_AND_NAME)
 
 
 @client.event
-async def on_carl_bot_message_in_drk_channel(message):
-
+async def on_message(message):
     # Defining our variables for our function here
     Dr_K_Content_Ping_Role_ID = 1138514811114770522
-    Dr_K_Content_Ping_Role = message.guild.get_role(Dr_K_Content_Ping_Role_ID)
-    Content_Channel_ID = 1078121853266165870
     Carl_Bot_User_ID = 235148962103951360
+    Dr_K_Content_Channel_ID = 1078121853266165870
 
-    # If a message was sent by carl bot and within the content channel, then ping everyone.
-    if message.author.id == Carl_Bot_User_ID and message.channel.id == Content_Channel_ID:
-        await post_channel_message(Content_Channel_ID, f"{Dr_K_Content_Ping_Role.mention} - new Dr. K Content Posted!")
+    # Passing in our variables to create our objects & object attributes.
+    guild = client.get_guild(client.server_id)
+    Dr_K_Content_Ping_Role = guild.get_role(Dr_K_Content_Ping_Role_ID)
+
+    if message.channel.id == Dr_K_Content_Channel_ID and message.author.id == Carl_Bot_User_ID:
+        notification_message = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
+        await post_channel_message(Dr_K_Content_Channel_ID, notification_message)
 
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")
@@ -128,8 +133,7 @@ async def FocusMode(interaction: discord.Interaction, minutes: int):
     appropriate_response: str = Time_Stuff.time_responses(minutes)
 
     if minutes > 10080 or minutes < 0:
-        await interaction.response.send_message(appropriate_response,
-                                                ephemeral=True)
+        await interaction.response.send_message(appropriate_response, ephemeral=True)
 
     else:
         user_info_from_db = database_instance.check_if_user_in_database(interaction.user.id)

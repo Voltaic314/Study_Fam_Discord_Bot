@@ -119,8 +119,7 @@ async def on_carl_bot_message_in_drk_channel(message):
 
     # If a message was sent by carl bot and within the content channel, then ping everyone.
     if message.author.id == Carl_Bot_User_ID and message.channel.id == Content_Channel_ID:
-        if "HealthyGamerGG" in message.content:
-            await post_channel_message(message.channel.id, f"{Dr_K_Content_Ping_Role.mention} - new Dr. K Content Posted!")
+        await post_channel_message(Content_Channel_ID, f"{Dr_K_Content_Ping_Role.mention} - new Dr. K Content Posted!")
 
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")

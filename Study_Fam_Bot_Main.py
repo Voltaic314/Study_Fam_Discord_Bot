@@ -64,7 +64,7 @@ class Focus_Bot_Client(discord.Client):
             # now we'll look to see if any messages need to be deleted from the auto delete channel
             # if so, then delete them, if not just ignore.
             async for message in auto_delete_channel.history(limit=None, oldest_first=True):
-                if not message.pinned and Time_Stuff.is_input_time_over_24_hours_ago(message.created_at.timestamp()):
+                if not message.pinned and Time_Stuff.is_input_time_past_threshold(message.created_at.timestamp(), 86400):
                     await message.delete()
 
             await asyncio.sleep(60)
@@ -84,7 +84,8 @@ class Focus_Bot_Client(discord.Client):
 
             # delete all previous unpinned messages from the bot to clear out the channel.
             async for message in self_care_channel.history(limit=None, oldest_first=True):
-                message_is_older_than_a_day = Time_Stuff.is_input_time_over_24_hours_ago(message.created_at.timestamp())
+                message_is_older_than_a_day = Time_Stuff.is_input_time_past_threshold(message.created_at.timestamp(),
+                                                                                      86400)
                 if message.author == client.user or message_is_older_than_a_day:
                     if not message.pinned:
                         await message.delete()
@@ -117,14 +118,24 @@ async def on_message(message):
     Dr_K_Content_Ping_Role_ID = 1138514811114770522
     Carl_Bot_User_ID = 235148962103951360
     Dr_K_Content_Channel_ID = 1078121853266165870
+    bot_id = 1073370831356440680
 
     # Passing in our variables to create our objects & object attributes.
     guild = client.get_guild(client.server_id)
     Dr_K_Content_Ping_Role = guild.get_role(Dr_K_Content_Ping_Role_ID)
 
     if message.channel.id == Dr_K_Content_Channel_ID and message.author.id == Carl_Bot_User_ID:
-        notification_message = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
-        await post_channel_message(Dr_K_Content_Channel_ID, notification_message)
+        async for message_from_bot in message.channel.history(limit=None, Oldest_First=False):
+            time_of_message = message_from_bot.created_at.timestamp()
+            one_hour_in_seconds = 1800
+            we_havent_posted_since_thirty_min_ago = Time_Stuff.is_input_time_past_threshold(time_of_message,
+                                                                                            one_hour_in_seconds)
+            message_is_from_bot = message_from_bot.author.id = bot_id
+            we_can_post_again = message_is_from_bot and we_havent_posted_since_thirty_min_ago
+
+            if we_can_post_again:
+                notification_msg = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
+                await post_channel_message(Dr_K_Content_Channel_ID, notification_msg)
 
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")

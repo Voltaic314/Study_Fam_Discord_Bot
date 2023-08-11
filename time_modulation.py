@@ -69,16 +69,17 @@ class Time_Stuff:
             return "Please input a number of minutes that is between 1 and 1440"
 
     @staticmethod
-    def is_input_time_over_24_hours_ago(input_time_in_epochs):
+    def is_input_time_past_threshold(input_time_in_epochs: float, threshold_time_in_seconds: int) -> bool:
         """
         Takes an input time in epoch seconds and determines if this time is over 24 hours old.
         :param input_time_in_epochs: an input time that is specifically in epoch seconds. like time.time()
+        :param threshold_time_in_seconds: an input time integer of seconds needed to say whether the input time is past
+        that point or not. I.e. for example 86400 would say is the input time older than 24 hours ago.
         :returns: True if the time is over 24 hours old, false otherwise.
         """
         current_time = time.time()
-        one_day_in_epoch_seconds = 86400
         time_difference_of_current_vs_input = current_time - input_time_in_epochs
-        return time_difference_of_current_vs_input >= one_day_in_epoch_seconds
+        return time_difference_of_current_vs_input >= threshold_time_in_seconds
 
     @staticmethod
     def next_occurrence_epoch(target_hour):

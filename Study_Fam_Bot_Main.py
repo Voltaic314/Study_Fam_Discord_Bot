@@ -100,6 +100,24 @@ class Focus_Bot_Client(discord.Client):
             # sleep until it's time to post again.
             await asyncio.sleep(sleep_time)
 
+    @staticmethod
+    def get_last_message_time_sent_from_user(user_id: int, channel: object):
+        for message_from_user in channel.history(limit=None, Oldest_First=False):
+            if message_from_user.author.id == user_id:
+                return message_from_user.created_at.timestamp()
+
+    def able_to_post_nofication_message(self, channel):
+        bot_id = 1073370831356440680
+        time_of_last_message_sent = self.get_last_message_time_sent_from_user(user_id=bot_id, channel=channel)
+        thirty_minutes_in_seconds = 1800
+        if time_of_last_message_sent:
+            we_havent_posted_since_thirty_min_ago = Time_Stuff.is_input_time_past_threshold(time_of_last_message_sent,
+                                                                                            thirty_minutes_in_seconds)
+            return we_havent_posted_since_thirty_min_ago
+
+        else:
+            return True
+
 
 client = Focus_Bot_Client()
 tree = app_commands.CommandTree(client)
@@ -113,29 +131,19 @@ database_instance = Database(DB_PATH_AND_NAME)
 
 
 @client.event
-async def on_message(message):
+async def on_message():
     # Defining our variables for our function here
     Dr_K_Content_Ping_Role_ID = 1138514811114770522
-    Carl_Bot_User_ID = 235148962103951360
     Dr_K_Content_Channel_ID = 1078121853266165870
-    bot_id = 1073370831356440680
 
     # Passing in our variables to create our objects & object attributes.
     guild = client.get_guild(client.server_id)
     Dr_K_Content_Ping_Role = guild.get_role(Dr_K_Content_Ping_Role_ID)
+    we_can_post_again = client.able_to_post_nofication_message(Dr_K_Content_Channel_ID)
 
-    if message.channel.id == Dr_K_Content_Channel_ID and message.author.id == Carl_Bot_User_ID:
-        async for message_from_bot in message.channel.history(limit=None, Oldest_First=False):
-            time_of_message = message_from_bot.created_at.timestamp()
-            one_hour_in_seconds = 1800
-            we_havent_posted_since_thirty_min_ago = Time_Stuff.is_input_time_past_threshold(time_of_message,
-                                                                                            one_hour_in_seconds)
-            message_is_from_bot = message_from_bot.author.id = bot_id
-            we_can_post_again = message_is_from_bot and we_havent_posted_since_thirty_min_ago
-
-            if we_can_post_again:
-                notification_msg = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
-                await post_channel_message(Dr_K_Content_Channel_ID, notification_msg)
+    if we_can_post_again:
+        notification_msg = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
+        await post_channel_message(Dr_K_Content_Channel_ID, notification_msg)
 
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")

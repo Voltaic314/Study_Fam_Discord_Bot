@@ -5,3 +5,7 @@ __pycache__/secrets.cpython-39.pyc
 idea/
 git/
 __pycache__/
+__pycache__/database.cpython-39.pyc
+__pycache__/database.cpython-39.pyc
+*.pyc
+__pycache__/time_modulation.cpython-39.pyc

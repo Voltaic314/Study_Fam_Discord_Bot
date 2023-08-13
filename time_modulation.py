@@ -1,5 +1,4 @@
 import time
-from datetime import datetime
 import math
 
 
@@ -69,17 +68,28 @@ class Time_Stuff:
             return "Please input a number of minutes that is between 1 and 1440"
 
     @staticmethod
-    def is_input_time_past_threshold(input_time_in_epochs: float, threshold_time_in_seconds: int) -> bool:
+    def is_input_time_past_threshold(input_time_in_epochs: float, threshold_time_in_seconds: int,
+                                     discord_time: bool) -> bool:
         """
         Takes an input time in epoch seconds and determines if this time is over 24 hours old.
         :param input_time_in_epochs: an input time that is specifically in epoch seconds. like time.time()
         :param threshold_time_in_seconds: an input time integer of seconds needed to say whether the input time is past
         that point or not. I.e. for example 86400 would say is the input time older than 24 hours ago.
+        :param discord_time: This is a flag that needs to be set to true if passing in a discord message since discord
+        message timestamps are returned in UTC time. Otherwise, it throws off the calculations.
         :returns: True if the time is over 24 hours old, false otherwise.
         """
         current_time = time.time()
-        time_difference_of_current_vs_input = current_time - input_time_in_epochs
-        return time_difference_of_current_vs_input >= threshold_time_in_seconds
+        if discord_time:
+            utc_offset_for_dst = 3600 * 4
+            utc_offset_for_non_dst = 3600 * 5
+            actual_message_time_in_EST = input_time_in_epochs - utc_offset_for_dst
+            time_difference_of_current_vs_input = current_time - actual_message_time_in_EST
+            return time_difference_of_current_vs_input >= threshold_time_in_seconds
+
+        else:
+            time_difference_of_current_vs_input = current_time - input_time_in_epochs
+            return time_difference_of_current_vs_input >= threshold_time_in_seconds
 
     @staticmethod
     def next_occurrence_epoch(target_hour):

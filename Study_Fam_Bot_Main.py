@@ -348,7 +348,7 @@ async def give_endless_focus_mode(interaction: discord.Interaction):
     print(f"Successfully given Focus role to {interaction.user.display_name}")
 
 
-@tree.command(name="QOTD", description="Provides a random question of the day")
+@tree.command(name="question_of_the_day", description="Provides a random question of the day")
 async def question_of_the_day(interaction: discord.Interaction):
     current_channel_id = interaction.channel_id
     question_pulled_from_text_file = Text_Processing.get_random_line_from_text_file("conversation starters.txt")

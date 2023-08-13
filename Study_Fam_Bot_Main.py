@@ -354,11 +354,8 @@ async def give_endless_focus_mode(interaction: discord.Interaction):
 
 
 @tree.command(name="question_of_the_day", description="Provides a random question of the day")
-async def question_of_the_day(interaction: discord.Interaction):
-
-    # give the bot time to think
-    await interaction.response.defer()
-    current_channel_id = interaction.channel_id
+async def question_of_the_day():
+    general_channel_id = 1005659511312351294
 
     # We need to do this if the script is being run in a directory that is different from the working directory.
     questions_list_file_path_and_name = return_file_name_with_current_directory("conversation starters.txt")
@@ -366,17 +363,9 @@ async def question_of_the_day(interaction: discord.Interaction):
     # get our question from the text file
     question_pulled_from_text_file = Text_Processing.get_random_line_from_text_file(questions_list_file_path_and_name)
 
-    # send a follow-up to the user who sent the command.
-    message_to_send_back_to_user = f'Got it. I will send this question, "{question_pulled_from_text_file}" to the channel.'
-    try:
-        await interaction.response.send_message(message_to_send_back_to_user, ephemeral=True)
-
-    except discord.app_commands.errors.CommandInvokeError:
-        await interaction.followup.send("Got it. I will send the question to the channel.")
-
     # send the question of the day to the channel the user typed the command in.
     message_to_send = f"**Question of the Day:** {question_pulled_from_text_file}"
-    await post_channel_message(current_channel_id, message_to_send)
+    await post_channel_message(general_channel_id, message_to_send)
 
 
 # Function to post a random message in the specified channel

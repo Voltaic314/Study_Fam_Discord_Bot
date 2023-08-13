@@ -367,10 +367,11 @@ async def question_of_the_day(interaction: discord.Interaction):
     question_pulled_from_text_file = Text_Processing.get_random_line_from_text_file(questions_list_file_path_and_name)
 
     # send a follow-up to the user who sent the command.
-    interaction.response(f'Got it. I will send this question, "{question_pulled_from_text_file}" to the channel.')
-    message_to_send = f"**Question of the Day:** {question_pulled_from_text_file}"
+    message_to_send_back_to_user = f'Got it. I will send this question, "{question_pulled_from_text_file}" to the channel.'
+    await interaction.response.send_message(message_to_send_back_to_user, ephemeral=True)
 
     # send the question of the day to the channel the user typed the command in.
+    message_to_send = f"**Question of the Day:** {question_pulled_from_text_file}"
     await post_channel_message(current_channel_id, message_to_send)
 
 

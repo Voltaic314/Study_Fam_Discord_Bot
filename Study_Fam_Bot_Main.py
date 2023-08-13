@@ -366,6 +366,7 @@ async def question_of_the_day(interaction: discord.Interaction):
     # send the question of the day to the channel the user typed the command in.
     message_to_send = f"**Question of the Day:** {question_pulled_from_text_file}"
     await current_channel.send(message_to_send)
+    await interaction.delete_original_response()
 
 
 # Function to post a random message in the specified channel

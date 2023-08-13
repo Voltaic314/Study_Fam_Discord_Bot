@@ -350,9 +350,19 @@ async def give_endless_focus_mode(interaction: discord.Interaction):
 
 @tree.command(name="question_of_the_day", description="Provides a random question of the day")
 async def question_of_the_day(interaction: discord.Interaction):
+
+    # give the bot time to think
+    await interaction.response.defer()
     current_channel_id = interaction.channel_id
+
+    # get our question from the text file
     question_pulled_from_text_file = Text_Processing.get_random_line_from_text_file("conversation starters.txt")
+
+    # send a follow-up to the user who sent the command.
+    interaction.response(f'Got it. I will send this question, "{question_pulled_from_text_file}" to the channel.')
     message_to_send = f"**Question of the Day:** {question_pulled_from_text_file}"
+
+    # send the question of the day to the channel the user typed the command in.
     await post_channel_message(current_channel_id, message_to_send)
 
 

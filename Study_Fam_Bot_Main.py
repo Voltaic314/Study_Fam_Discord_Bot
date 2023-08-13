@@ -121,15 +121,20 @@ class Focus_Bot_Client(discord.Client):
             return True
 
 
+def return_file_name_with_current_directory(filename: str) -> str:
+
+    # get the current file path we're operating in, so we don't have to hard code this in.
+    # this also requires that the file be in the same working directory as this script.
+    CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+    FILE_PATH_AND_NAME = os.path.join(CURRENT_DIRECTORY, filename)
+    return FILE_PATH_AND_NAME
+
+
 client = Focus_Bot_Client()
 tree = app_commands.CommandTree(client)
 Focus_Role_int: int = secrets.discord_bot_credentials["Focus_Role_ID"]
-
-# get the current file path we're operating in, so we don't have to hard code this in.
-# this also requires that the database be in the same working directory as this script.
-CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
-DB_PATH_AND_NAME = os.path.join(CURRENT_DIRECTORY, "Focus_Mode_Info.db")
-database_instance = Database(DB_PATH_AND_NAME)
+database_file_name_and_path = return_file_name_with_current_directory("Focus_Mode_Info.db")
+database_instance = Database(database_file_name_and_path)
 
 
 @client.event
@@ -355,8 +360,11 @@ async def question_of_the_day(interaction: discord.Interaction):
     await interaction.response.defer()
     current_channel_id = interaction.channel_id
 
+    # We need to do this if the script is being run in a directory that is different from the working directory.
+    questions_list_file_path_and_name = return_file_name_with_current_directory("conversation starters.txt")
+
     # get our question from the text file
-    question_pulled_from_text_file = Text_Processing.get_random_line_from_text_file("conversation starters.txt")
+    question_pulled_from_text_file = Text_Processing.get_random_line_from_text_file(questions_list_file_path_and_name)
 
     # send a follow-up to the user who sent the command.
     interaction.response(f'Got it. I will send this question, "{question_pulled_from_text_file}" to the channel.')

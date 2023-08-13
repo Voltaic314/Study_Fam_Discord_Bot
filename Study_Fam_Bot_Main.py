@@ -3,6 +3,7 @@ from discord import app_commands
 import secrets
 from time_modulation import Time_Stuff
 from database import Database
+from text_processing import Text_Processing
 import os
 import asyncio
 import random
@@ -64,7 +65,8 @@ class Focus_Bot_Client(discord.Client):
             # now we'll look to see if any messages need to be deleted from the auto delete channel
             # if so, then delete them, if not just ignore.
             async for message in auto_delete_channel.history(limit=None, oldest_first=True):
-                if not message.pinned and Time_Stuff.is_input_time_past_threshold(message.created_at.timestamp(), 86400):
+                if not message.pinned and Time_Stuff.is_input_time_past_threshold(message.created_at.timestamp(),
+                                                                                  86400):
                     await message.delete()
 
             await asyncio.sleep(60)
@@ -205,11 +207,13 @@ async def display_time_left_for_user(interaction: discord.Interaction):
                 hours = time_left[1]
                 days = time_left[2]
 
-                await interaction.channel.send(f"{interaction.user.mention} - You have {days} days, {hours} hours, and {minutes} minutes left "
-                                               f"in Focus Mode.")
+                await interaction.channel.send(
+                    f"{interaction.user.mention} - You have {days} days, {hours} hours, and {minutes} minutes left "
+                    f"in Focus Mode.")
 
             else:
-                await interaction.channel.send(f"{interaction.user.mention} - You are not in the Focus mode database currently.")
+                await interaction.channel.send(
+                    f"{interaction.user.mention} - You are not in the Focus mode database currently.")
 
 
 @tree.command(name="display_all_in_focus_mode", description="Displays all of the users currently in Focus Mode")
@@ -342,6 +346,14 @@ async def give_endless_focus_mode(interaction: discord.Interaction):
     await interaction.response.send_message(appropriate_response, ephemeral=True)
     await interaction.user.add_roles(Focus_Role_object)
     print(f"Successfully given Focus role to {interaction.user.display_name}")
+
+
+@tree.command(name="QOTD", description="Provides a random question of the day")
+async def question_of_the_day(interaction: discord.Interaction):
+    current_channel_id = interaction.channel_id
+    question_pulled_from_text_file = Text_Processing.get_random_line_from_text_file("conversation starters.txt")
+    message_to_send = f"**Question of the Day:** {question_pulled_from_text_file}"
+    await post_channel_message(current_channel_id, message_to_send)
 
 
 # Function to post a random message in the specified channel

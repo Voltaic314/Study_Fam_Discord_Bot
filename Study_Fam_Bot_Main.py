@@ -368,7 +368,11 @@ async def question_of_the_day(interaction: discord.Interaction):
 
     # send a follow-up to the user who sent the command.
     message_to_send_back_to_user = f'Got it. I will send this question, "{question_pulled_from_text_file}" to the channel.'
-    await interaction.response.send_message(message_to_send_back_to_user, ephemeral=True)
+    try:
+        await interaction.response.send_message(message_to_send_back_to_user, ephemeral=True)
+
+    except discord.app_commands.errors.CommandInvokeError:
+        await interaction.followup.send("Got it. I will send the question to the channel.")
 
     # send the question of the day to the channel the user typed the command in.
     message_to_send = f"**Question of the Day:** {question_pulled_from_text_file}"

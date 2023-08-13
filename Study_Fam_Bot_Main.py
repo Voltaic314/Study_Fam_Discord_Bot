@@ -354,8 +354,8 @@ async def give_endless_focus_mode(interaction: discord.Interaction):
 
 
 @tree.command(name="question_of_the_day", description="Provides a random question of the day")
-async def question_of_the_day():
-    general_channel_id = 1005659511312351294
+async def question_of_the_day(interaction: discord.Interaction):
+    current_channel = interaction.channel
 
     # We need to do this if the script is being run in a directory that is different from the working directory.
     questions_list_file_path_and_name = return_file_name_with_current_directory("conversation starters.txt")
@@ -365,7 +365,7 @@ async def question_of_the_day():
 
     # send the question of the day to the channel the user typed the command in.
     message_to_send = f"**Question of the Day:** {question_pulled_from_text_file}"
-    await post_channel_message(general_channel_id, message_to_send)
+    await current_channel.send(message_to_send)
 
 
 # Function to post a random message in the specified channel

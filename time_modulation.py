@@ -81,8 +81,8 @@ class Time_Stuff:
         """
         current_time = time.time()
         if discord_time:
-            utc_offset_for_dst = 3600 * 4
-            utc_offset_for_non_dst = 3600 * 5
+            utc_offset_for_dst = 3600 * 5
+            utc_offset_for_non_dst = 3600 * 6
             actual_message_time_in_EST = input_time_in_epochs - utc_offset_for_dst
             time_difference_of_current_vs_input = current_time - actual_message_time_in_EST
             return time_difference_of_current_vs_input >= threshold_time_in_seconds

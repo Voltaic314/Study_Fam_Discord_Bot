@@ -85,22 +85,34 @@ class Focus_Bot_Client(discord.Client):
 
         while True:
 
+            last_message_sent_time = await self.get_last_message_time_sent_from_user(user_id=self.user_id,
+                                                                                     channel=self_care_channel)
+
             # delete all previous unpinned messages from the bot to clear out the channel.
             async for message in self_care_channel.history(limit=None, oldest_first=True):
-                message_is_older_than_a_day = Time_Stuff.is_input_time_past_threshold(message.created_at.timestamp(),
-                                                                                      86400, True)
-                if message.author == client.user or message_is_older_than_a_day:
-                    if not message.pinned:
+                if not message.pinned:
+                    message_is_older_than_a_day = Time_Stuff.is_input_time_past_threshold(message.created_at.timestamp(),
+                                                                                          86400, True)
+                    if message_is_older_than_a_day:
                         await message.delete()
 
-            last_message_sent_time = self.get_last_message_time_sent_from_user(user_id=self.user_id, channel=self_care_channel)
-            last_message_is_older_than_an_hour = Time_Stuff.is_input_time_past_threshold(last_message_sent_time, 3600, True)
-
-            # This is so in case we have to reboot the bot it's not just spamming the channel every single time.
-            if last_message_is_older_than_an_hour:
-
-                # post a new reminder message
+            if not last_message_sent_time:
+                # post the self-care reminder to the channel.
                 await post_channel_message(self.SELF_CARE_CHANNEL_ID, self_care_message_to_send)
+
+            else:
+                last_message_is_older_than_an_hour = Time_Stuff.is_input_time_past_threshold(last_message_sent_time, 3600, True)
+
+                # This is so in case we have to reboot the bot it's not just spamming the channel every single time.
+                if last_message_is_older_than_an_hour:
+
+                    # delete the previous message before we post again
+                    last_message = await self.get_last_message_from_user(self.user_id, channel=self_care_channel)
+                    if last_message:
+                        await last_message.delete()
+
+                    # post the self-care reminder to the channel.
+                    await post_channel_message(self.SELF_CARE_CHANNEL_ID, self_care_message_to_send)
 
             # pick a random number of seconds to wait between 1 hour minimum and 4 hours maximum
             # This ensures the bot will never post less than at least 6 times a day, but up to 24 times a day max.
@@ -109,18 +121,23 @@ class Focus_Bot_Client(discord.Client):
             # sleep until it's time to post again.
             await asyncio.sleep(sleep_time)
 
-
-    def get_last_message_time_sent_from_user(self, user_id: int, channel: object):
+    @staticmethod
+    async def get_last_message_time_sent_from_user(user_id: int, channel: object):
         channel_history = channel.history(limit=None, oldest_first=False)
-        for message_from_user in channel_history:
-            if message_from_user.author.id == user_id:
+        async for message_from_user in channel_history:
+            if message_from_user.author.id == user_id and not message_from_user.pinned:
                 return message_from_user.created_at.timestamp()
 
+    @staticmethod
+    async def get_last_message_from_user(user_id: int, channel: object):
+        channel_history = channel.history(limit=None, oldest_first=False)
+        async for message_from_user in channel_history:
+            if message_from_user.author.id == user_id and not message_from_user.pinned:
+                return message_from_user
 
-
-    def able_to_post_nofication_message(self, channel):
+    async def able_to_post_nofication_message(self, channel):
         bot_id = 1073370831356440680
-        time_of_last_message_sent = asyncio.run(self.get_last_message_time_sent_from_user(user_id=bot_id, channel=channel))
+        time_of_last_message_sent = await self.get_last_message_time_sent_from_user(user_id=bot_id, channel=channel)
         thirty_minutes_in_seconds = 1800
         if time_of_last_message_sent:
             we_havent_posted_since_thirty_min_ago = Time_Stuff.is_input_time_past_threshold(time_of_last_message_sent,
@@ -153,15 +170,16 @@ async def on_message(message):
     # Defining our variables for our function here
     Dr_K_Content_Ping_Role_ID = 1138514811114770522
     Dr_K_Content_Channel_ID = 1078121853266165870
-    Dr_K_Content_Channel = message.channel
+    Dr_K_Content_Channel = client.get_channel(Dr_K_Content_Channel_ID)
 
     # Passing in our variables to create our objects & object attributes.
     guild = client.get_guild(client.server_id)
     Dr_K_Content_Ping_Role = guild.get_role(Dr_K_Content_Ping_Role_ID)
-    we_can_post_again = client.able_to_post_nofication_message(Dr_K_Content_Channel)
+    we_can_post_again = message.channel.id == Dr_K_Content_Channel_ID and await client.able_to_post_nofication_message(Dr_K_Content_Channel)
 
     if we_can_post_again:
         notification_msg = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
+
         await Dr_K_Content_Channel.send(notification_msg)
 
 

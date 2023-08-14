@@ -169,18 +169,19 @@ database_instance = Database(database_file_name_and_path)
 async def on_message(message):
     # Defining our variables for our function here
     Dr_K_Content_Ping_Role_ID = 1138514811114770522
+    Carl_Bot_User_ID = 235148962103951360
     Dr_K_Content_Channel_ID = 1078121853266165870
-    Dr_K_Content_Channel = client.get_channel(Dr_K_Content_Channel_ID)
 
     # Passing in our variables to create our objects & object attributes.
     guild = client.get_guild(client.server_id)
     Dr_K_Content_Ping_Role = guild.get_role(Dr_K_Content_Ping_Role_ID)
-    we_can_post_again = message.channel.id == Dr_K_Content_Channel_ID and await client.able_to_post_nofication_message(Dr_K_Content_Channel)
+    Dr_K_Content_Channel = guild.get_channel(Dr_K_Content_Channel_ID)
 
-    if we_can_post_again:
-        notification_msg = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
+    if message.channel.id == Dr_K_Content_Channel_ID and message.author.id == Carl_Bot_User_ID:
+        notification_message = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
+        await post_channel_message(Dr_K_Content_Channel_ID, notification_message)
 
-        await Dr_K_Content_Channel.send(notification_msg)
+        await Dr_K_Content_Channel.send(notification_message)
 
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")

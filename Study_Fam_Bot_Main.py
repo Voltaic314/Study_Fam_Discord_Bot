@@ -179,8 +179,6 @@ async def on_message(message):
 
     if message.channel.id == Dr_K_Content_Channel_ID and message.author.id == Carl_Bot_User_ID:
         notification_message = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
-        await post_channel_message(Dr_K_Content_Channel_ID, notification_message)
-
         await Dr_K_Content_Channel.send(notification_message)
 
 

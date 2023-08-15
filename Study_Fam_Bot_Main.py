@@ -70,6 +70,12 @@ class Focus_Bot_Client(discord.Client):
                                                                                   86400, True):
                     await message.delete()
 
+            for thread in auto_delete_channel.threads:
+                thread_needs_to_be_deleted = Time_Stuff.is_input_time_past_threshold(thread.created_at.timestamp(),
+                                                                                     86400, True)
+                if thread_needs_to_be_deleted:
+                    await thread.delete()
+
             await asyncio.sleep(60)
 
     # Function to start posting messages on a fixed interval (every 2 hours)

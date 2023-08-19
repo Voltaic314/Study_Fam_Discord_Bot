@@ -1,6 +1,7 @@
 from pytube import YouTube
 import speech_recognition as sr
 import os
+from time_modulation import Time_Stuff
 
 
 class Video_Processing:
@@ -56,7 +57,7 @@ class Video_Processing:
             return False
 
     def convert_audio_to_speech_text(self, audio_filename: str, text_filename_to_save: str, 
-                                     remove_audio_file: bool) -> None:
+                                     remove_audio_file: bool, text_file_header: str) -> None:
         recognizer = sr.Recognizer()
         full_audio_file_path = self.get_current_file_path(audio_filename)
         with sr.AudioFile(full_audio_file_path) as source:
@@ -65,6 +66,7 @@ class Video_Processing:
             text = recognizer.recognize_google(audio)
             full_text_file_path = self.get_current_file_path(text_filename_to_save)
             with open(full_text_file_path, "w") as save_file:
+                save_file.write(text_file_header)
                 save_file.write(text)
         except sr.UnknownValueError:
             print("Google Speech Recognition could not understand the audio")
@@ -85,8 +87,12 @@ class Video_Processing:
         audio_download_was_successful = self.file_exists(full_file_path, True)
         if audio_download_was_successful:
             txt_filename = audio_filename[:-3] + f"_video_id={video_id}.txt"
+            text_file_header = ""
+            text_file_header += f"Date: {Time_Stuff.convert_epochs_to_human_readable_time(Time_Stuff.get_current_time_in_epochs)}\n"
+            text_file_header += f"Video_ID: {video_id}\n"
+            text_file_header += f"Video Title: {audio_filename[:-3]}"
             self.convert_audio_to_speech_text(self, audio_filename=audio_filename, text_filename_to_save=txt_filename, 
-                                              remove_audio_file=True)
+                                              remove_audio_file=True, text_file_header=text_file_header)
             text_file_path = self.get_current_file_path(txt_filename)
             text_transcription_saved_a_txt_file = self.file_exists(text_file_path, True)
             if text_transcription_saved_a_txt_file:

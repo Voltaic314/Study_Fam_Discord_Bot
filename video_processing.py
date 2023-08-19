@@ -91,6 +91,7 @@ class Video_Processing:
             text_file_header += f"Date: {Time_Stuff.convert_epochs_to_human_readable_time(Time_Stuff.get_current_time_in_epochs)}\n"
             text_file_header += f"Video_ID: {video_id}\n"
             text_file_header += f"Video Title: {audio_filename[:-3]}"
+            text_file_header += f"Video URL: {YT_Video_Url}"
             self.convert_audio_to_speech_text(self, audio_filename=audio_filename, text_filename_to_save=txt_filename, 
                                               remove_audio_file=True, text_file_header=text_file_header)
             text_file_path = self.get_current_file_path(txt_filename)

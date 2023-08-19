@@ -163,7 +163,7 @@ class Focus_Bot_Client(discord.Client):
             return True
 
     @staticmethod
-    async def YT_Video_Transcriptions(message):
+    async def YT_Video_Transcriptions(message: object) -> None:
         video_link = Text_Processing.extract_video_url(message.content)
         video_title = Video_Processing.get_video_title(video_link)
         transcribed_text_filename = Video_Processing.transcribe_a_YT_video(video_link)

@@ -166,9 +166,7 @@ class Focus_Bot_Client(discord.Client):
     async def YT_Video_Transcriptions(message):
         video_link = Text_Processing.extract_video_url(message.content)
         video_title = Video_Processing.get_video_title(video_link)
-        video_processing_instance = Video_Processing()
-        transcribed_text_filename = Video_Processing.transcribe_a_YT_video(
-            video_processing_instance, video_link)
+        transcribed_text_filename = Video_Processing.transcribe_a_YT_video(video_link)
         thread = await message.create_thread(video_title)
         with open(transcribed_text_filename, encoding="utf-8") as txt_file:
             txt_file_to_upload = discord.File(

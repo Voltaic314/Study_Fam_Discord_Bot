@@ -1,6 +1,8 @@
-from pytube import YouTube
-import speech_recognition as sr
 import os
+
+import speech_recognition as sr
+from pytube import YouTube
+
 from time_modulation import Time_Stuff
 
 
@@ -43,48 +45,53 @@ class Video_Processing:
         title_of_video = youtube.title.title()
         return title_of_video
 
-    def download_video_as_mp3(self, url: str) -> (str, str) or bool:
+    @staticmethod
+    def download_video_as_mp3(url: str) -> (str, str) or bool:
         youtube = YouTube(url)
         title_of_video = youtube.title.title()
         video_id = youtube.video_id
         video = youtube.streams.get_audio_only()
         filename_to_save = title_of_video + ".mp3"
         video.download(output_path=filename_to_save)
-        the_audio_saved_successfully = self.file_exists(filename_to_save)
+        the_audio_saved_successfully = Video_Processing.file_exists(filename_to_save, False)
         if the_audio_saved_successfully:
             return filename_to_save, video_id
         else:
             return False
 
-    def convert_audio_to_speech_text(self, audio_filename: str, text_filename_to_save: str, 
+    @staticmethod
+    def convert_audio_to_speech_text(audio_filename: str, text_filename_to_save: str,
                                      remove_audio_file: bool, text_file_header: str) -> None:
         recognizer = sr.Recognizer()
-        full_audio_file_path = self.get_current_file_path(audio_filename)
+        full_audio_file_path = Video_Processing.get_current_file_path(audio_filename)
         with sr.AudioFile(full_audio_file_path) as source:
             audio = recognizer.record(source)  # Record the entire audio file
         try:
             text = recognizer.recognize_google(audio)
-            full_text_file_path = self.get_current_file_path(text_filename_to_save)
-            with open(full_text_file_path, "w") as save_file:
+            full_text_file_path = Video_Processing.get_current_file_path(
+                text_filename_to_save)
+            with open(full_text_file_path, encoding="utf-8", OpenTextMode="w") as save_file:
                 save_file.write(text_file_header)
                 save_file.write(text)
         except sr.UnknownValueError:
             print("Google Speech Recognition could not understand the audio")
         except sr.RequestError as e:
-            print(f"Could not request results from Google Speech Recognition service; {e}")
+            print(
+                f"Could not request results from Google Speech Recognition service; {e}")
 
         if remove_audio_file:
             os.remove(full_audio_file_path)
 
-    def transcribe_a_YT_video(self, YT_Video_Url: str) -> str:
+    @staticmethod
+    def transcribe_a_YT_video(YT_Video_Url: str) -> str:
         """
         This will take a YT URL and transcribe it to a text file. It will then return the text file name if successful.
         :param YT_Video_Url: the full YT URL link for the video.
         :returns: String of the text file name that the video was transcribed to.
         """
-        audio_filename, video_id = self.download_video_as_mp3(url=YT_Video_Url)
-        full_file_path = self.get_current_file_path(audio_filename)
-        audio_download_was_successful = self.file_exists(full_file_path, True)
+        audio_filename, video_id = Video_Processing.download_video_as_mp3(url=YT_Video_Url)
+        full_file_path = Video_Processing.get_current_file_path(audio_filename)
+        audio_download_was_successful = Video_Processing.file_exists(full_file_path, True)
         if audio_download_was_successful:
             txt_filename = audio_filename[:-3] + f"_video_id={video_id}.txt"
             text_file_header = ""
@@ -92,9 +99,9 @@ class Video_Processing:
             text_file_header += f"Video_ID: {video_id}\n"
             text_file_header += f"Video Title: {audio_filename[:-3]}"
             text_file_header += f"Video URL: {YT_Video_Url}"
-            self.convert_audio_to_speech_text(self, audio_filename=audio_filename, text_filename_to_save=txt_filename, 
-                                              remove_audio_file=True, text_file_header=text_file_header)
-            text_file_path = self.get_current_file_path(txt_filename)
-            text_transcription_saved_a_txt_file = self.file_exists(text_file_path, True)
+            Video_Processing.convert_audio_to_speech_text(audio_filename, txt_filename, True, text_file_header)
+            text_file_path = Video_Processing.get_current_file_path(txt_filename)
+            text_transcription_saved_a_txt_file = Video_Processing.file_exists(
+                text_file_path, True)
             if text_transcription_saved_a_txt_file:
                 return text_file_path

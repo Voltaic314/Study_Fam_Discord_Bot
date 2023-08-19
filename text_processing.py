@@ -14,7 +14,7 @@ class Text_Processing:
 
         lines_of_file = []
 
-        with open(filename, "r") as file:
+        with open(filename, encoding="utf-8", OpenTextMode="r") as file:
             for line in file:
                 # This if statement is to prevent this from adding empty line strings to the list.
                 if line:
@@ -32,12 +32,21 @@ class Text_Processing:
         return Text_Processing.get_random_string_from_list(lines)
 
     @staticmethod
-    def extract_video_url(message: str) -> str:
+    def extract_video_url(message_contents: str) -> str:
         """
         This function takes a message string posted by Carl_bot and removes all the other fluff text to extract the
         video url from it.
         :param message: string from carl bot containing the entire message contents.
         :returns: new string of video url.
         """
-        message -= "Dr. K just uploaded a video. Go check it out! "
-        return message
+
+        # Example message would look like this:
+        # "Dr. K just uploaded a video. Go check it out! youtube.com/link"
+
+        # Split up the message by word. This will create a list variable.
+        # (The last spaced item will be the link)
+        split_up_message = message_contents.split(" ")
+        
+        # Retrieve the link posted from the list variable, it will always be the last item in the list.
+        YouTube_URL = split_up_message[-1]
+        return YouTube_URL

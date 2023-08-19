@@ -10,3 +10,5 @@ __pycache__/database.cpython-39.pyc
 *.pyc
 __pycache__/time_modulation.cpython-39.pyc
 *.pyc
+.vscode/settings.json
+.vscode/launch.json

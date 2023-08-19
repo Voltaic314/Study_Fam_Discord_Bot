@@ -1,13 +1,15 @@
+import asyncio
+import os
+import random
+
 import discord
 from discord import app_commands
-import secrets
-from time_modulation import Time_Stuff
+
+import secrets_1
 from database import Database
 from text_processing import Text_Processing
+from time_modulation import Time_Stuff
 from video_processing import Video_Processing
-import os
-import asyncio
-import random
 
 
 class Focus_Bot_Client(discord.Client):
@@ -18,9 +20,9 @@ class Focus_Bot_Client(discord.Client):
         super().__init__(intents=intents)
         self.synced = False  # we use this so the bot doesn't sync commands more than once
         # define our variables
-        self.server_id = secrets.discord_bot_credentials["Server_ID_for_Study_Fam"]
-        self.SELF_CARE_CHANNEL_ID = secrets.discord_bot_credentials["Self_Care_Channel_ID"]
-        self.user_id = secrets.discord_bot_credentials["Client_ID"]
+        self.server_id = secrets_1.discord_bot_credentials["Server_ID_for_Study_Fam"]
+        self.SELF_CARE_CHANNEL_ID = secrets_1.discord_bot_credentials["Self_Care_Channel_ID"]
+        self.user_id = secrets_1.discord_bot_credentials["Client_ID"]
 
     async def on_ready(self):
         # wait for the bot to be set up properly
@@ -41,19 +43,22 @@ class Focus_Bot_Client(discord.Client):
 
         # Passing in our variables to create our objects & object attributes.
         guild = client.get_guild(self.server_id)
-        auto_delete_channel = guild.get_channel(secrets.discord_bot_credentials["Auto_Delete_Channel_ID"])
+        auto_delete_channel = guild.get_channel(
+            secrets_1.discord_bot_credentials["Auto_Delete_Channel_ID"])
 
         while True:
 
             # This is a list of tuples, where each item in the tuple is a cell in the row.
-            database_entries = database_instance.retrieve_values_from_table("Study_Fam_People_Currently_In_Focus_Mode")
+            database_entries = database_instance.retrieve_values_from_table(
+                "Study_Fam_People_Currently_In_Focus_Mode")
 
             # make sure the list is not empty
             if database_entries:
 
                 for entry in database_entries:
                     current_time = Time_Stuff.get_current_time_in_epochs()
-                    Focus_Role_object = discord.utils.get(guild.roles, name="Focus")
+                    Focus_Role_object = discord.utils.get(
+                        guild.roles, name="Focus")
 
                     # check to see if the user is past their expired focus ending time. If so, remove them from the
                     # database and remove their focus role. Do this for every user in the database.
@@ -108,7 +113,8 @@ class Focus_Bot_Client(discord.Client):
                 await post_channel_message(self.SELF_CARE_CHANNEL_ID, self_care_message_to_send)
 
             else:
-                last_message_is_older_than_an_hour = Time_Stuff.is_input_time_past_threshold(last_message_sent_time, 3600, True)
+                last_message_is_older_than_an_hour = Time_Stuff.is_input_time_past_threshold(
+                    last_message_sent_time, 3600, True)
 
                 # This is so in case we have to reboot the bot it's not just spamming the channel every single time.
                 if last_message_is_older_than_an_hour:
@@ -123,7 +129,8 @@ class Focus_Bot_Client(discord.Client):
 
             # pick a random number of seconds to wait between 1 hour minimum and 4 hours maximum
             # This ensures the bot will never post less than at least 6 times a day, but up to 24 times a day max.
-            sleep_time = random.randint(number_of_seconds_in_one_hour, number_of_seconds_in_four_hours)
+            sleep_time = random.randint(
+                number_of_seconds_in_one_hour, number_of_seconds_in_four_hours)
 
             # sleep until it's time to post again.
             await asyncio.sleep(sleep_time)
@@ -154,15 +161,18 @@ class Focus_Bot_Client(discord.Client):
 
         else:
             return True
-    
+
     @staticmethod
     async def YT_Video_Transcriptions(message):
         video_link = Text_Processing.extract_video_url(message.content)
         video_title = Video_Processing.get_video_title(video_link)
         video_processing_instance = Video_Processing()
-        transcribed_text_filename = Video_Processing.transcribe_a_YT_video(video_processing_instance, video_link)
+        transcribed_text_filename = Video_Processing.transcribe_a_YT_video(
+            video_processing_instance, video_link)
         thread = await message.create_thread(video_title)
-        txt_file_to_upload = discord.File(filename=transcribed_text_filename)
+        with open(transcribed_text_filename, encoding="utf-8") as txt_file:
+            txt_file_to_upload = discord.File(
+                txt_file, filename=transcribed_text_filename)
         await thread.send(content="Transcription File:", file=txt_file_to_upload)
         os.remove(transcribed_text_filename)
 
@@ -178,8 +188,9 @@ def return_file_name_with_current_directory(filename: str) -> str:
 
 client = Focus_Bot_Client()
 tree = app_commands.CommandTree(client)
-Focus_Role_int: int = secrets.discord_bot_credentials["Focus_Role_ID"]
-database_file_name_and_path = return_file_name_with_current_directory("Focus_Mode_Info.db")
+Focus_Role_int: int = secrets_1.discord_bot_credentials["Focus_Role_ID"]
+database_file_name_and_path = return_file_name_with_current_directory(
+    "Focus_Mode_Info.db")
 database_instance = Database(database_file_name_and_path)
 
 
@@ -199,7 +210,7 @@ async def on_message(message):
         if "youtu.be/" in message.content or "youtube.com" in message.content:
             await client.YT_Video_Transcriptions(message=message)
         notification_message = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
-        await Dr_K_Content_Channel.send(notification_message)
+        # await Dr_K_Content_Channel.send(notification_message)
 
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")
@@ -211,7 +222,8 @@ async def FocusMode(interaction: discord.Interaction, minutes: int):
         await interaction.response.send_message(appropriate_response, ephemeral=True)
 
     else:
-        user_info_from_db = database_instance.check_if_user_in_database(interaction.user.id)
+        user_info_from_db = database_instance.check_if_user_in_database(
+            interaction.user.id)
 
         # check the database to see if they are just updating their current time left. If not, then create a new entry.
         # if they are updating their time, make sure it's only adding more time, not lessening their time.
@@ -223,13 +235,15 @@ async def FocusMode(interaction: discord.Interaction, minutes: int):
 
             if new_time > user_info_from_db[2]:
                 await interaction.followup.send(content=appropriate_response, ephemeral=True)
-                database_instance.update_user_info_from_focus_table(interaction.user.id, new_time)
+                database_instance.update_user_info_from_focus_table(
+                    interaction.user.id, new_time)
 
         # This will execute if the user is not in the database already. Thus, the user_info_from_db value is False.
         elif not user_info_from_db:
             await interaction.response.send_message(appropriate_response, ephemeral=True)
             await interaction.user.add_roles(Focus_Role_object)
-            print(f"Successfully given Focus role to {interaction.user.display_name}")
+            print(
+                f"Successfully given Focus role to {interaction.user.display_name}")
 
             # set up our variables into a human-readable format, so it's clear what order things go into the database.
             username = interaction.user.display_name
@@ -242,12 +256,14 @@ async def FocusMode(interaction: discord.Interaction, minutes: int):
                 username, user_id, end_time_for_user_session, start_time_for_user_session)
 
             # now time to actually log all of that to the database.
-            database_instance.log_to_DB(user_info_tuple_to_log_to_database, "Study_Fam_People_Currently_In_Focus_Mode")
+            database_instance.log_to_DB(
+                user_info_tuple_to_log_to_database, "Study_Fam_People_Currently_In_Focus_Mode")
 
 
 @tree.command(name="time_left_in_focus", description="This will display how much time you have left in focus mode.")
 async def display_time_left_for_user(interaction: discord.Interaction):
-    database_entries = database_instance.retrieve_values_from_table("Study_Fam_People_Currently_In_Focus_Mode")
+    database_entries = database_instance.retrieve_values_from_table(
+        "Study_Fam_People_Currently_In_Focus_Mode")
 
     current_time = Time_Stuff.get_current_time_in_epochs()
 
@@ -256,7 +272,8 @@ async def display_time_left_for_user(interaction: discord.Interaction):
         for entry in database_entries:
 
             if interaction.user.id in entry:
-                time_left = Time_Stuff.how_many_minutes_apart(entry[2], current_time)
+                time_left = Time_Stuff.how_many_minutes_apart(
+                    entry[2], current_time)
                 minutes = time_left[0]
                 hours = time_left[1]
                 days = time_left[2]
@@ -277,11 +294,13 @@ async def display_all_in_focus_mode(interaction: discord.Interaction):
 
     # builds the list of users in focus from the database and in the line after, all the users who have focus that are
     # not in the database too.
-    database_entries = database_instance.retrieve_values_from_table("Study_Fam_People_Currently_In_Focus_Mode")
+    database_entries = database_instance.retrieve_values_from_table(
+        "Study_Fam_People_Currently_In_Focus_Mode")
 
     # This is a list of member objects that are not in the database. It compares the role members' IDs with the
     # IDs in the list of tuples.
-    all_focus_members = [member for member in interaction.guild.members if Focus_Role_Object in member.roles]
+    all_focus_members = [
+        member for member in interaction.guild.members if Focus_Role_Object in member.roles]
     non_database_users_in_focus = [member for member in all_focus_members if member.id
                                    not in [user[1] for user in database_entries]]
 
@@ -325,7 +344,8 @@ async def test_response(interaction: discord.Interaction):
 async def give_max_focus_time(interaction: discord.Interaction):
     Focus_Role_object = interaction.guild.get_role(Focus_Role_int)
     appropriate_response: str = Time_Stuff.time_responses(10080)
-    user_info_from_db = database_instance.check_if_user_in_database(interaction.user.id)
+    user_info_from_db = database_instance.check_if_user_in_database(
+        interaction.user.id)
     current_time = Time_Stuff.get_current_time_in_epochs()
     number_of_seconds_in_a_week = 604800
     max_time = current_time + number_of_seconds_in_a_week
@@ -337,41 +357,48 @@ async def give_max_focus_time(interaction: discord.Interaction):
 
         if time_to_put_user_in_focus > user_info_from_db[2]:
             await interaction.followup.send(content=appropriate_response, ephemeral=True)
-            database_instance.update_user_info_from_focus_table(interaction.user.id, time_to_put_user_in_focus)
+            database_instance.update_user_info_from_focus_table(
+                interaction.user.id, time_to_put_user_in_focus)
 
     # if the user is not already in the database, create an entry with the max focus time as their focus period.
     else:
         await interaction.response.send_message(appropriate_response, ephemeral=True)
         await interaction.user.add_roles(Focus_Role_object)
-        print(f"Successfully given Focus role to {interaction.user.display_name}")
+        print(
+            f"Successfully given Focus role to {interaction.user.display_name}")
 
         username = interaction.user.display_name
         user_id = interaction.user.id
         end_time_for_user_session = time_to_put_user_in_focus
-        start_time_for_user_session = Time_Stuff.convert_epochs_to_human_readable_time(current_time)
-        user_info_tuple_to_log_to_database = (username, user_id, end_time_for_user_session, start_time_for_user_session)
-        database_instance.log_to_DB(user_info_tuple_to_log_to_database, "Study_Fam_People_Currently_In_Focus_Mode")
+        start_time_for_user_session = Time_Stuff.convert_epochs_to_human_readable_time(
+            current_time)
+        user_info_tuple_to_log_to_database = (
+            username, user_id, end_time_for_user_session, start_time_for_user_session)
+        database_instance.log_to_DB(
+            user_info_tuple_to_log_to_database, "Study_Fam_People_Currently_In_Focus_Mode")
 
 
 @tree.command(name="remove_user_focus_override", description="Removes a user from focus role and their database entry "
                                                              "(mod only)")
 async def remove_user_focus_override(interaction: discord.Interaction, user_to_be_removed: discord.User):
     await interaction.response.defer()
-    server_id = secrets.discord_bot_credentials["Server_ID_for_Study_Fam"]
+    server_id = secrets_1.discord_bot_credentials["Server_ID_for_Study_Fam"]
     guild = client.get_guild(server_id)
     member = interaction.user
-    focus_role_id = secrets.discord_bot_credentials["Focus_Role_ID"]
-    mod_role_id = secrets.discord_bot_credentials["Server_Mod_Role_ID"]
-    botmod_role_id = secrets.discord_bot_credentials["Server_Botmod_Role_ID"]
-    admin_role_id = secrets.discord_bot_credentials["Server_Admin_Role_ID"]
+    focus_role_id = secrets_1.discord_bot_credentials["Focus_Role_ID"]
+    mod_role_id = secrets_1.discord_bot_credentials["Server_Mod_Role_ID"]
+    botmod_role_id = secrets_1.discord_bot_credentials["Server_Botmod_Role_ID"]
+    admin_role_id = secrets_1.discord_bot_credentials["Server_Admin_Role_ID"]
 
     # All we care about is if the user has the correct role, out of the 3 roles above, as long as they have at least one
     user_doing_command_has_correct_authorization = discord.utils.get(member.roles, id=mod_role_id) or discord.utils.get(
         member.roles, id=botmod_role_id) or discord.utils.get(member.roles, id=admin_role_id)
 
     if user_doing_command_has_correct_authorization:
-        user_to_be_removed_has_focus_role_currently = discord.utils.get(member.roles, id=focus_role_id)
-        user_is_in_db = database_instance.check_if_user_in_database(user_to_be_removed.id)
+        user_to_be_removed_has_focus_role_currently = discord.utils.get(
+            member.roles, id=focus_role_id)
+        user_is_in_db = database_instance.check_if_user_in_database(
+            user_to_be_removed.id)
 
         if user_to_be_removed_has_focus_role_currently:
             current_user = await guild.fetch_member(user_to_be_removed.id)
@@ -407,10 +434,12 @@ async def question_of_the_day(interaction: discord.Interaction):
     current_channel = interaction.channel
 
     # We need to do this if the script is being run in a directory that is different from the working directory.
-    questions_list_file_path_and_name = return_file_name_with_current_directory("conversation starters.txt")
+    questions_list_file_path_and_name = return_file_name_with_current_directory(
+        "conversation starters.txt")
 
     # get our question from the text file
-    question_pulled_from_text_file = Text_Processing.get_random_line_from_text_file(questions_list_file_path_and_name)
+    question_pulled_from_text_file = Text_Processing.get_random_line_from_text_file(
+        questions_list_file_path_and_name)
 
     # send the question of the day to the channel the user typed the command in.
     message_to_send = f"**Question of the Day:** {question_pulled_from_text_file}"
@@ -424,5 +453,5 @@ async def post_channel_message(channel_id: int, message: str):
     await channel.send(message)
 
 
-TOKEN = secrets.discord_bot_credentials["API_Key"]
+TOKEN = secrets_1.discord_bot_credentials["API_Key"]
 client.run(TOKEN)

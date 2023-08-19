@@ -154,6 +154,17 @@ class Focus_Bot_Client(discord.Client):
 
         else:
             return True
+    
+    @staticmethod
+    async def YT_Video_Transcriptions(message):
+        video_link = Text_Processing.extract_video_url(message.content)
+        video_title = Video_Processing.get_video_title(video_link)
+        video_processing_instance = Video_Processing()
+        transcribed_text_filename = Video_Processing.transcribe_a_YT_video(video_processing_instance, video_link)
+        thread = await message.create_thread(video_title)
+        txt_file_to_upload = discord.File(filename=transcribed_text_filename)
+        await thread.send(content="Transcription File:", file=txt_file_to_upload)
+        os.remove(transcribed_text_filename)
 
 
 def return_file_name_with_current_directory(filename: str) -> str:
@@ -186,13 +197,7 @@ async def on_message(message):
 
     if message.channel.id == Dr_K_Content_Channel_ID and message.author.id == Carl_Bot_User_ID:
         if "youtu.be/" in message.content or "youtube.com" in message.content:
-            video_link = Text_Processing.extract_video_url(message.content)
-            video_title = Video_Processing.get_video_title(video_link)
-            video_processing_instance = Video_Processing()
-            transcribed_text_filename = Video_Processing.transcribe_a_YT_video(video_processing_instance, video_link)
-            thread = await message.create_thread(video_title)
-            txt_file_to_upload = discord.File(filename=transcribed_text_filename)
-            await thread.send(content="Transcription File:", file=txt_file_to_upload)
+            await client.YT_Video_Transcriptions(message=message)
         notification_message = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
         await Dr_K_Content_Channel.send(notification_message)
 

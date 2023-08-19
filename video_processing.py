@@ -55,19 +55,24 @@ class Video_Processing:
         else:
             return False
 
-    @staticmethod
-    def convert_audio_to_speech_text(audio_filename: str, text_filename_to_save: str) -> None:
+    def convert_audio_to_speech_text(self, audio_filename: str, text_filename_to_save: str, 
+                                     remove_audio_file: bool) -> None:
         recognizer = sr.Recognizer()
-        with sr.AudioFile(audio_filename) as source:
+        full_audio_file_path = self.get_current_file_path(audio_filename)
+        with sr.AudioFile(full_audio_file_path) as source:
             audio = recognizer.record(source)  # Record the entire audio file
         try:
             text = recognizer.recognize_google(audio)
-            with open(text_filename_to_save, "w") as save_file:
+            full_text_file_path = self.get_current_file_path(text_filename_to_save)
+            with open(full_text_file_path, "w") as save_file:
                 save_file.write(text)
         except sr.UnknownValueError:
             print("Google Speech Recognition could not understand the audio")
         except sr.RequestError as e:
             print(f"Could not request results from Google Speech Recognition service; {e}")
+
+        if remove_audio_file:
+            os.remove(full_audio_file_path)
 
     def transcribe_a_YT_video(self, YT_Video_Url: str) -> str:
         """
@@ -79,8 +84,9 @@ class Video_Processing:
         full_file_path = self.get_current_file_path(audio_filename)
         audio_download_was_successful = self.file_exists(full_file_path, True)
         if audio_download_was_successful:
-            txt_filename = audio_filename[:-3] + ".txt"
-            self.convert_audio_to_speech_text(audio_filename=audio_filename, text_filename_to_save=txt_filename)
+            txt_filename = audio_filename[:-3] + f"_video_id={video_id}.txt"
+            self.convert_audio_to_speech_text(self, audio_filename=audio_filename, text_filename_to_save=txt_filename, 
+                                              remove_audio_file=True)
             text_file_path = self.get_current_file_path(txt_filename)
             text_transcription_saved_a_txt_file = self.file_exists(text_file_path, True)
             if text_transcription_saved_a_txt_file:

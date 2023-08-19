@@ -30,3 +30,14 @@ class Text_Processing:
     def get_random_line_from_text_file(filename: str) -> str:
         lines = Text_Processing.list_of_lines_in_text_file(filename)
         return Text_Processing.get_random_string_from_list(lines)
+
+    @staticmethod
+    def extract_video_url(message: str) -> str:
+        """
+        This function takes a message string posted by Carl_bot and removes all the other fluff text to extract the
+        video url from it.
+        :param message: string from carl bot containing the entire message contents.
+        :returns: new string of video url.
+        """
+        message -= "Dr. K just uploaded a video. Go check it out! "
+        return message

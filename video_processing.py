@@ -36,6 +36,12 @@ class Video_Processing:
             file_path = os.path.join(current_directory, filename)
             return os.path.exists(file_path)
 
+    @staticmethod
+    def get_video_title(url: str):
+        youtube = YouTube(url)
+        title_of_video = youtube.title.title()
+        return title_of_video
+
     def download_video_as_mp3(self, url: str) -> (str, str) or bool:
         youtube = YouTube(url)
         title_of_video = youtube.title.title()

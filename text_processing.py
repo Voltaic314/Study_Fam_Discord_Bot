@@ -14,7 +14,7 @@ class Text_Processing:
 
         lines_of_file = []
 
-        with open(filename, encoding="utf-8", OpenTextMode="r") as file:
+        with open(filename, encoding="utf-8", mode="r") as file:
             for line in file:
                 # This if statement is to prevent this from adding empty line strings to the list.
                 if line:

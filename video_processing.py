@@ -70,7 +70,7 @@ class Video_Processing:
             text = recognizer.recognize_google(audio)
             full_text_file_path = Video_Processing.get_current_file_path(
                 text_filename_to_save)
-            with open(full_text_file_path, encoding="utf-8", OpenTextMode="w") as save_file:
+            with open(full_text_file_path, encoding="utf-8", mode="w") as save_file:
                 save_file.write(text_file_header)
                 save_file.write(text)
         except sr.UnknownValueError:

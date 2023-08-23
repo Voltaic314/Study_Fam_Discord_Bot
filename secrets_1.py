@@ -1,5 +1,5 @@
 discord_bot_credentials = {
-    "API_Key": "MTA3MzM3MDgzMTM1NjQ0MDY4MA.G8ObMQ.GLw5kIB6gOcvQE_Ku11nVELGWFZ9GAT-TYx8rE",
+    "API_Key": "MTA3MzM3MDgzMTM1NjQ0MDY4MA.GqHM-G.VaxDQBmzkk7aAevtP3mPQdkQsE5bdJox2bi330",
     "Invite_Link": "https://discord.com/api/oauth2/authorize?client_id=1073370831356440680&permissions=1497835957847&scope=bot",
     "Client_ID": 1073370831356440680,
     "Public_Key": "f2c3da36fa436bbdb9df7c1695e0c82975bbda2dff82d9ab2e71f9aa999cfb4b",

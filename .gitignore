@@ -12,3 +12,4 @@ __pycache__/time_modulation.cpython-39.pyc
 *.pyc
 .vscode/settings.json
 .vscode/launch.json
+secrets_1.py

@@ -21,3 +21,4 @@ instagram_bot_credentials = {
     "Client_Token": "32f596d9868d0e31a684ba8c5aee0006",
     "Redirect_URI": "https://github.com/Voltaic314/Focus_Mode_Discord_Bot",
 }
+

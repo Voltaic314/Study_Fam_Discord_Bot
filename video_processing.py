@@ -76,8 +76,7 @@ class Video_Processing:
         except sr.UnknownValueError:
             print("Google Speech Recognition could not understand the audio")
         except sr.RequestError as e:
-            print(
-                f"Could not request results from Google Speech Recognition service; {e}")
+            print(f"Could not request results from Google Speech Recognition service; {e}")
 
         if remove_audio_file:
             os.remove(full_audio_file_path)

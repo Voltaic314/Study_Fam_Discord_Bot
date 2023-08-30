@@ -5,7 +5,7 @@ import random
 import discord
 from discord import app_commands
 
-import secrets_1
+import config
 from database import Database
 from text_processing import Text_Processing
 from time_modulation import Time_Stuff
@@ -21,9 +21,9 @@ class Focus_Bot_Client(discord.Client):
         super().__init__(intents=intents)
         self.synced = False  # we use this so the bot doesn't sync commands more than once
         # define our variables
-        self.server_id = secrets_1.discord_bot_credentials["Server_ID_for_Study_Fam"]
-        self.SELF_CARE_CHANNEL_ID = secrets_1.discord_bot_credentials["Self_Care_Channel_ID"]
-        self.user_id = secrets_1.discord_bot_credentials["Client_ID"]
+        self.server_id = config.discord_bot_credentials["Server_ID_for_Study_Fam"]
+        self.SELF_CARE_CHANNEL_ID = config.discord_bot_credentials["Self_Care_Channel_ID"]
+        self.user_id = config.discord_bot_credentials["Client_ID"]
 
     async def on_ready(self):
         # wait for the bot to be set up properly
@@ -45,7 +45,7 @@ class Focus_Bot_Client(discord.Client):
         # Passing in our variables to create our objects & object attributes.
         guild = client.get_guild(self.server_id)
         auto_delete_channel = guild.get_channel(
-            secrets_1.discord_bot_credentials["Auto_Delete_Channel_ID"])
+            config.discord_bot_credentials["Auto_Delete_Channel_ID"])
 
         while True:
 
@@ -187,7 +187,7 @@ def return_file_name_with_current_directory(filename: str) -> str:
 
 client = Focus_Bot_Client()
 tree = app_commands.CommandTree(client)
-Focus_Role_int: int = secrets_1.discord_bot_credentials["Focus_Role_ID"]
+Focus_Role_int: int = config.discord_bot_credentials["Focus_Role_ID"]
 database_file_name_and_path = return_file_name_with_current_directory(
     "Focus_Mode_Info.db")
 database_instance = Database(database_file_name_and_path)
@@ -381,13 +381,13 @@ async def give_max_focus_time(interaction: discord.Interaction):
                                                              "(mod only)")
 async def remove_user_focus_override(interaction: discord.Interaction, user_to_be_removed: discord.User):
     await interaction.response.defer()
-    server_id = secrets_1.discord_bot_credentials["Server_ID_for_Study_Fam"]
+    server_id = config.discord_bot_credentials["Server_ID_for_Study_Fam"]
     guild = client.get_guild(server_id)
     member = interaction.user
-    focus_role_id = secrets_1.discord_bot_credentials["Focus_Role_ID"]
-    mod_role_id = secrets_1.discord_bot_credentials["Server_Mod_Role_ID"]
-    botmod_role_id = secrets_1.discord_bot_credentials["Server_Botmod_Role_ID"]
-    admin_role_id = secrets_1.discord_bot_credentials["Server_Admin_Role_ID"]
+    focus_role_id = config.discord_bot_credentials["Focus_Role_ID"]
+    mod_role_id = config.discord_bot_credentials["Server_Mod_Role_ID"]
+    botmod_role_id = config.discord_bot_credentials["Server_Botmod_Role_ID"]
+    admin_role_id = config.discord_bot_credentials["Server_Admin_Role_ID"]
 
     # All we care about is if the user has the correct role, out of the 3 roles above, as long as they have at least one
     user_doing_command_has_correct_authorization = discord.utils.get(member.roles, id=mod_role_id) or discord.utils.get(
@@ -451,5 +451,5 @@ async def post_channel_message(channel_id: int, message: str):
     await channel.send(message)
 
 
-TOKEN = secrets_1.discord_bot_credentials["API_Key"]
+TOKEN = config.discord_bot_credentials["API_Key"]
 client.run(TOKEN)

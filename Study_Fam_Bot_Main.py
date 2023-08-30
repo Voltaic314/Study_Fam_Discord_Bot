@@ -17,6 +17,7 @@ class Focus_Bot_Client(discord.Client):
         intents = discord.Intents.default()
         intents.members = True  # Enable the GUILD_MEMBERS intent
         intents.messages = True
+        intents.message_content = True
         super().__init__(intents=intents)
         self.synced = False  # we use this so the bot doesn't sync commands more than once
         # define our variables

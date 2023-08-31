@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 import math
 
 
@@ -11,6 +12,10 @@ class Time_Stuff:
     @staticmethod
     def convert_epochs_to_human_readable_time(epochs: float) -> str:
         return time.ctime(float(math.floor(epochs)))
+
+    @staticmethod
+    def get_current_date() -> str:
+        return datetime.now().strftime('%m/%d/%y')
 
     @staticmethod
     def how_many_minutes_apart(epoch_time_one: float, epoch_time_two: float) -> list[float]:

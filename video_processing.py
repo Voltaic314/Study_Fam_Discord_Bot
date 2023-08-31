@@ -2,8 +2,10 @@ import os
 
 import speech_recognition as sr
 from pytube import YouTube
+from pydub import AudioSegment
 
 from time_modulation import Time_Stuff
+from text_processing import Text_Processing
 
 
 class Video_Processing:
@@ -40,6 +42,14 @@ class Video_Processing:
             return os.path.exists(file_path)
 
     @staticmethod
+    def convert_wav_to_pcm(mp3_path):
+        with open(mp3_path, "rb") as mp3_file:
+            audio = AudioSegment.from_mp3(mp3_file)
+            # Set the sample width to 2 bytes (16 bits) for PCM
+            audio = audio.set_sample_width(2)
+            audio.export(format="wav")
+
+    @staticmethod
     def get_video_title(url: str):
         youtube = YouTube(url)
         title_of_video = youtube.title.title()
@@ -51,11 +61,11 @@ class Video_Processing:
         title_of_video = youtube.title.title()
         video_id = youtube.video_id
         video = youtube.streams.get_audio_only()
-        filename_to_save = title_of_video + ".mp3"
-        video.download(output_path=filename_to_save)
-        the_audio_saved_successfully = Video_Processing.file_exists(filename_to_save, False)
+        safe_name_to_save = Text_Processing.remove_special_characters_from_string(title_of_video).title().replace(" ", "") + ".mp3"
+        video.download(filename=safe_name_to_save)
+        the_audio_saved_successfully = Video_Processing.file_exists(safe_name_to_save, True)
         if the_audio_saved_successfully:
-            return filename_to_save, video_id
+            return safe_name_to_save, video_id
         else:
             return False
 
@@ -89,12 +99,13 @@ class Video_Processing:
         :returns: String of the text file name that the video was transcribed to.
         """
         audio_filename, video_id = Video_Processing.download_video_as_mp3(url=YT_Video_Url)
+        Video_Processing.convert_wav_to_pcm(audio_filename)
         full_file_path = Video_Processing.get_current_file_path(audio_filename)
         audio_download_was_successful = Video_Processing.file_exists(full_file_path, True)
         if audio_download_was_successful:
             txt_filename = audio_filename[:-3] + f"_video_id={video_id}.txt"
             text_file_header = ""
-            text_file_header += f"Date: {Time_Stuff.convert_epochs_to_human_readable_time(Time_Stuff.get_current_time_in_epochs)}\n"
+            text_file_header += f"Date: {Time_Stuff.get_current_date()}\n"
             text_file_header += f"Video_ID: {video_id}\n"
             text_file_header += f"Video Title: {audio_filename[:-3]}"
             text_file_header += f"Video URL: {YT_Video_Url}"

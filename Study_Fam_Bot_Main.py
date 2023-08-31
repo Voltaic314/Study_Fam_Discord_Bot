@@ -208,8 +208,8 @@ async def on_message(message):
     if message.channel.id == Dr_K_Content_Channel_ID and message.author.id == Carl_Bot_User_ID:
         if "youtu.be/" in message.content or "youtube.com" in message.content:
             await client.YT_Video_Transcriptions(message=message)
-        notification_message = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
-        await Dr_K_Content_Channel.send(notification_message)
+            notification_message = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
+            # await Dr_K_Content_Channel.send(notification_message)
 
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")

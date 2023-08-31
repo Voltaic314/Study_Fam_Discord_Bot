@@ -23,6 +23,14 @@ class Text_Processing:
         return lines_of_file
 
     @staticmethod
+    def remove_special_characters_from_string(input_string: str) -> str:
+        new_string = ""
+        for character in input_string:
+            if character.isalnum() or character.isspace():
+                new_string += character
+        return new_string
+
+    @staticmethod
     def get_random_string_from_list(list_of_strings: list[str]) -> str:
         return random.choice(list_of_strings)
 

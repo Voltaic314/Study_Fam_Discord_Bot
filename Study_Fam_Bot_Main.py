@@ -33,19 +33,51 @@ class Focus_Bot_Client(discord.Client):
             self.synced = True
         print(f"We have logged in as {self.user}.")
 
-        # when we start up the bot, run the check to remove anyone in the database who shouldn't be in there anymore.
-        self.loop.create_task(self.bot_routines())
+        await self.clear_void_channel()
+
+        # when we start up the bot, run the check to remove anyone in 
+        # the database who shouldn't be in there anymore.
+        self.loop.create_task(self.focus_mode_maintenance())
 
         # Start the message posting loop
         self.loop.create_task(self.self_care_reminder_time_loop())
 
-    async def bot_routines(self):
+
+    async def clear_void_channel(self):
+        
+        # Passing in our variables to create our objects & object attributes.
+        guild = client.get_guild(self.server_id)
+        auto_delete_channel_id =config.discord_bot_credentials["Auto_Delete_Channel_ID"]
+        auto_delete_channel = guild.get_channel(auto_delete_channel_id)
+        
+        # The bot comes online every day at 11:55 pm, 5 minutes to midnight.
+        # We will wait until midnight to delete all the messages in the channel.  
+        five_minutes_in_seconds = 300
+        asyncio.sleep(five_minutes_in_seconds)
+
+        # iterate through all the individual messages and only delete them if they aren't pinned
+        async for message in auto_delete_channel.history(limit=None, oldest_first=True):
+            if not message.pinned:
+                await message.delete()
+
+                # sleep to not get rate limited. :) 
+                asyncio.sleep(1)
+
+
+        # delete all threads because they can't be pinned.
+        # even if you pin a message in a thread, it only pins to the thread.
+        # so then messages wouldn't make sense as to why they are pinned in there.
+        # just delete the whole thing.
+        for thread in auto_delete_channel.threads:
+            await thread.delete()
+
+
+    async def focus_mode_maintenance(self):
         await self.wait_until_ready()
 
         # Passing in our variables to create our objects & object attributes.
         guild = client.get_guild(self.server_id)
-        auto_delete_channel = guild.get_channel(
-            config.discord_bot_credentials["Auto_Delete_Channel_ID"])
+        
 
         while True:
 
@@ -70,19 +102,6 @@ class Focus_Bot_Client(discord.Client):
                             name_of_table="Study_Fam_People_Currently_In_Focus_Mode",
                             User_ID=entry[1])
 
-            # now we'll look to see if any messages need to be deleted from the auto delete channel
-            # if so, then delete them, if not just ignore.
-            async for message in auto_delete_channel.history(limit=None, oldest_first=True):
-                if not message.pinned and Time_Stuff.is_input_time_past_threshold(message.created_at.timestamp(),
-                                                                                  86400, True):
-                    await message.delete()
-
-            for thread in auto_delete_channel.threads:
-                thread_needs_to_be_deleted = Time_Stuff.is_input_time_past_threshold(thread.created_at.timestamp(),
-                                                                                     86400, True)
-                if thread_needs_to_be_deleted:
-                    await thread.delete()
-
             await asyncio.sleep(60)
 
     # Function to start posting messages on a fixed interval (every 2 hours)
@@ -100,14 +119,6 @@ class Focus_Bot_Client(discord.Client):
 
             last_message_sent_time = await self.get_last_message_time_sent_from_user(user_id=self.user_id,
                                                                                      channel=self_care_channel)
-
-            # delete all previous unpinned messages from the bot to clear out the channel.
-            async for message in self_care_channel.history(limit=None, oldest_first=True):
-                if not message.pinned:
-                    message_is_older_than_a_day = Time_Stuff.is_input_time_past_threshold(message.created_at.timestamp(),
-                                                                                          86400, True)
-                    if message_is_older_than_a_day:
-                        await message.delete()
 
             if not last_message_sent_time:
                 # post the self-care reminder to the channel.
@@ -130,8 +141,8 @@ class Focus_Bot_Client(discord.Client):
 
             # pick a random number of seconds to wait between 1 hour minimum and 4 hours maximum
             # This ensures the bot will never post less than at least 6 times a day, but up to 24 times a day max.
-            sleep_time = random.randint(
-                number_of_seconds_in_one_hour, number_of_seconds_in_four_hours)
+            sleep_time = random.randint(number_of_seconds_in_one_hour, 
+                                        number_of_seconds_in_four_hours)
 
             # sleep until it's time to post again.
             await asyncio.sleep(sleep_time)

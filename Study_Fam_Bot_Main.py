@@ -26,8 +26,6 @@ class Focus_Bot_Client(discord.Client):
         self.user_id = config.discord_bot_credentials["Client_ID"]
 
     async def on_ready(self):
-        # wait for the bot to be set up properly
-        await self.wait_until_ready()
         if not self.synced:  # check if slash commands have been synced
             await tree.sync()
             self.synced = True
@@ -35,42 +33,28 @@ class Focus_Bot_Client(discord.Client):
 
         await self.clear_void_channel()
 
-        # when we start up the bot, run the check to remove anyone in 
-        # the database who shouldn't be in there anymore.
+        # manage and sort out the focus users
         self.loop.create_task(self.focus_mode_maintenance())
 
-        # Start the message posting loop
+        # Start the self care message posting loop
         self.loop.create_task(self.self_care_reminder_time_loop())
 
-
-    async def clear_void_channel(self):
-        
-        # Passing in our variables to create our objects & object attributes.
+        # clear the void channel with the last bit of this code
         guild = client.get_guild(self.server_id)
-        auto_delete_channel_id =config.discord_bot_credentials["Auto_Delete_Channel_ID"]
+        auto_delete_channel_id = config.discord_bot_credentials["Auto_Delete_Channel_ID"]
         auto_delete_channel = guild.get_channel(auto_delete_channel_id)
-        
-        # The bot comes online every day at 11:55 pm, 5 minutes to midnight.
-        # We will wait until midnight to delete all the messages in the channel.  
+
         five_minutes_in_seconds = 300
         asyncio.sleep(five_minutes_in_seconds)
 
-        # iterate through all the individual messages and only delete them if they aren't pinned
         async for message in auto_delete_channel.history(limit=None, oldest_first=True):
             if not message.pinned:
                 await message.delete()
-
-                # sleep to not get rate limited. :) 
                 asyncio.sleep(1)
 
-
-        # delete all threads because they can't be pinned.
-        # even if you pin a message in a thread, it only pins to the thread.
-        # so then messages wouldn't make sense as to why they are pinned in there.
-        # just delete the whole thing.
         for thread in auto_delete_channel.threads:
             await thread.delete()
-
+            asyncio.sleep(1)
 
     async def focus_mode_maintenance(self):
         await self.wait_until_ready()

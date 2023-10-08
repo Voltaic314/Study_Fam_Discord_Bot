@@ -14,15 +14,18 @@ from video_processing import Video_Processing
 
 class Focus_Bot_Client(discord.Client):
     def __init__(self):
+
+        # set up our bot intents
         intents = discord.Intents.default()
         intents.members = True  # Enable the GUILD_MEMBERS intent
         intents.messages = True
         intents.message_content = True
         super().__init__(intents=intents)
-        self.synced = False  # we use this so the bot doesn't sync commands more than once
-        # define our variables
+
+        # we use this so the bot doesn't sync commands more than once
+        self.synced = False
+
         self.server_id = config.discord_bot_credentials["Server_ID_for_Study_Fam"]
-        self.SELF_CARE_CHANNEL_ID = config.discord_bot_credentials["Self_Care_Channel_ID"]
         self.user_id = config.discord_bot_credentials["Client_ID"]
 
     async def on_ready(self):

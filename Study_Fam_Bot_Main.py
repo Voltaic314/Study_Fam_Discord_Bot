@@ -34,8 +34,6 @@ class Focus_Bot_Client(discord.Client):
             self.synced = True
         print(f"We have logged in as {self.user}.")
 
-        await self.clear_void_channel()
-
         # manage and sort out the focus users
         self.loop.create_task(self.focus_mode_maintenance())
 

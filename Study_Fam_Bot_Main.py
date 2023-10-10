@@ -441,6 +441,34 @@ async def question_of_the_day(interaction: discord.Interaction):
     await current_channel.send(message_to_send)
 
 
+# This is a function to list out potential duplicate emotes in the server. 
+@tree.command(name="find_duplicate_emotes", description="Responds with a list of potential duplicate emotes in the server's emote list")
+async def Duplicate_Emote_command(Interaction: discord.Interaction):
+    await Interaction.response.defer()
+
+    emote_list = get_static_emotes()
+
+    potential_duplicates = client.find_duplicates_through_hashes(emote_list)
+
+    if not potential_duplicates:
+        formatted_string_to_send_to_channel = 'There were no duplicates found!'
+        Interaction.channel.send(formatted_string_to_send_to_channel)
+
+    else:
+
+        formatted_string_to_send_to_channel = ''
+        formatted_string_to_send_to_channel += f'Found: {len(potential_duplicates)} emotes with potential duplicates.'
+        formatted_string_to_send_to_channel += 'Here are a list of emote names and their potential duplicates to check:'
+
+        for emote, duplicate_list in potential_duplicates.items():
+
+            duplicate_list_string = ', '.join(duplicate_list)
+
+            formatted_string_to_send_to_channel += f'Emote: {emote.name}, Potential Duplicate Emotes: {duplicate_list_string}'
+
+        Interaction.channel.send(formatted_string_to_send_to_channel)
+
+
 # Function to post a random message in the specified channel
 async def post_channel_message(channel_id: int, message: str):
     channel = client.get_channel(channel_id)

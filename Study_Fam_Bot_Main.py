@@ -6,6 +6,7 @@ import discord
 from discord import app_commands
 
 import config
+import find_duplicate_emojis
 from database import Database
 from text_processing import Text_Processing
 from time_modulation import Time_Stuff
@@ -446,9 +447,9 @@ async def question_of_the_day(interaction: discord.Interaction):
 async def Duplicate_Emote_command(Interaction: discord.Interaction):
     await Interaction.response.defer()
 
-    emote_list = get_static_emotes()
+    emote_list = find_duplicate_emojis.get_static_emotes()
 
-    potential_duplicates = client.find_duplicates_through_hashes(emote_list)
+    potential_duplicates = find_duplicate_emojis.find_duplicates_through_hashes(emote_list)
 
     if not potential_duplicates:
         formatted_string_to_send_to_channel = 'There were no duplicates found!'

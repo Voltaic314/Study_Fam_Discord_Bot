@@ -3,6 +3,7 @@ import os
 import speech_recognition as sr
 from pytube import YouTube
 from pydub import AudioSegment
+import ffmpeg
 
 from time_modulation import Time_Stuff
 from text_processing import Text_Processing
@@ -42,12 +43,19 @@ class Video_Processing:
             return os.path.exists(file_path)
 
     @staticmethod
-    def convert_wav_to_pcm(mp3_path):
+    def convert_mp3_to_wav_pcm(mp3_path):
+
+        current_directory = os.path.dirname(os.path.abspath(__file__))
+        # Change the current working directory to the script's directory
+        os.chdir(current_directory)
+        mp3_path = os.path.abspath(mp3_path)
+        
         with open(mp3_path, "rb") as mp3_file:
             audio = AudioSegment.from_mp3(mp3_file)
             # Set the sample width to 2 bytes (16 bits) for PCM
             audio = audio.set_sample_width(2)
             audio.export(format="wav")
+
 
     @staticmethod
     def get_video_title(url: str):
@@ -59,13 +67,12 @@ class Video_Processing:
     def download_video_as_mp3(url: str) -> (str, str) or bool:
         youtube = YouTube(url)
         title_of_video = youtube.title.title()
-        video_id = youtube.video_id
         video = youtube.streams.get_audio_only()
         safe_name_to_save = Text_Processing.remove_special_characters_from_string(title_of_video).title().replace(" ", "") + ".mp3"
         video.download(filename=safe_name_to_save)
         the_audio_saved_successfully = Video_Processing.file_exists(safe_name_to_save, True)
         if the_audio_saved_successfully:
-            return safe_name_to_save, video_id
+            return safe_name_to_save, youtube.video_id
         else:
             return False
 
@@ -98,8 +105,8 @@ class Video_Processing:
         :param YT_Video_Url: the full YT URL link for the video.
         :returns: String of the text file name that the video was transcribed to.
         """
-        audio_filename, video_id = Video_Processing.download_video_as_mp3(url=YT_Video_Url)
-        Video_Processing.convert_wav_to_pcm(audio_filename)
+        audio_filename, video_id = Video_Processing.download_video_as_mp3(YT_Video_Url)
+        Video_Processing.convert_mp3_to_wav_pcm(audio_filename)
         full_file_path = Video_Processing.get_current_file_path(audio_filename)
         audio_download_was_successful = Video_Processing.file_exists(full_file_path, True)
         if audio_download_was_successful:

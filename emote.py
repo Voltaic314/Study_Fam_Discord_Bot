@@ -2,7 +2,6 @@
 The purpose of this module is to contain the Emote class object
 which comprises of the emote url and the corresponding hash. 
 '''
-import requests
 import os
 import imagehash
 from PIL import Image
@@ -10,10 +9,10 @@ from PIL import Image
 
 class Emote:
 
-    def __init__(self, emoji):
-        self.url = emoji.url
-        self.id = emoji.id
-        self.name = emoji.name
+    def __init__(self, emote):
+        self.url = emote.url
+        self.id = emote.id
+        self.name = emote.name
 
     def write_image(self) -> bool:
         """
@@ -24,8 +23,7 @@ class Emote:
         self.filename = 'image.jpg'
         self.file_path = os.path.abspath(self.filename)
 
-        with open(self.filename, 'wb') as f:
-            f.write(requests.get(self.url).content)
+        self.save(self.filename)
 
         return os.path.exists(self.file_path)
 

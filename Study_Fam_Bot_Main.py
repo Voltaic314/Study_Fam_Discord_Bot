@@ -447,7 +447,7 @@ async def question_of_the_day(interaction: discord.Interaction):
 async def Duplicate_Emote_command(Interaction: discord.Interaction):
     await Interaction.response.defer()
 
-    emote_list = find_duplicate_emojis.get_static_emotes()
+    emote_list = find_duplicate_emojis.get_static_emotes(Interaction.guild.emojis)
 
     potential_duplicates = find_duplicate_emojis.find_duplicates_through_hashes(emote_list)
 
@@ -463,7 +463,9 @@ async def Duplicate_Emote_command(Interaction: discord.Interaction):
 
         for emote, duplicate_list in potential_duplicates.items():
 
-            duplicate_list_string = ', '.join(duplicate_list)
+            duplicate_emote_string = ''
+            for duplicate_emote in duplicate_list:
+                duplicate_emote_string += f'Duplicate emote name: {duplicate_emote.name}\n'
 
             formatted_string_to_send_to_channel += f'Emote: {emote.name}, Potential Duplicate Emotes: {duplicate_list_string}'
 

@@ -13,3 +13,5 @@ Current functionalities:
 3. Self care reminders - automatically post, at random intervals, for the user to stay hydrated and keep their posture upright. At most this would post every hour, at minimum every 4 hours.
 
 4. Question of the day - this bot will post a conversation starter question of the day from a txt file of given questions. Feel free to supply your own text file here if you wish.
+
+5. Dr K Content Pings for every time healthy gamer uploads a YouTube video, YT Short, or starts a live stream on YT or Twitch. 

@@ -48,7 +48,7 @@ class Video_Processing:
         current_directory = os.path.dirname(os.path.abspath(__file__))
         # Change the current working directory to the script's directory
         os.chdir(current_directory)
-        mp3_path = os.path.abspath(mp3_path)
+        # mp3_path = os.path.abspath(mp3_path)
         
         with open(mp3_path, "rb") as mp3_file:
             audio = AudioSegment.from_mp3(mp3_file)

@@ -1,38 +1,18 @@
-from emote import Emote
+from image_processing import Image_Processing
+from file_processing import File_Processing
 
+def generate_hash_dict(emote_list: list[object]) -> dict[object, hash]:
+    hash_list = {}
 
-def get_static_emotes(emote_tuple: tuple) -> list[object]:
+    for emote in emote_list:
+        emote_filename = f'{emote.name} - {emote.id}.jpg'
+        hash_list[emote] = Image_Processing.difference_image_hashing(emote_filename)
+        # remove each image after we hash them to save on resources
+        File_Processing.remove_file(emote_filename, False)
 
-    # iterate through the emotes and only create a list of emote objects from static image emotes
-    list_of_emotes = []
-    for emote in emote_tuple:
-        if not emote.animated:
+    return hash_list
 
-            list_of_emotes.append(Emote(emote))
-
-    return list_of_emotes
-
-
-def get_hamming_distance(hex_str1: str, hex_str2: str) -> int:
-    # Make sure the input strings have the same length
-    if len(hex_str1) != len(hex_str2):
-        raise ValueError("Input strings must have the same length")
-
-    # Convert hexadecimal strings to integers
-    int1 = int(hex_str1, 16)
-    int2 = int(hex_str2, 16)
-
-    # Calculate the XOR of the two integers
-    xor_result = int1 ^ int2
-
-    # Count the number of set bits (1s) in the XOR result
-    hamming_dist = bin(xor_result).count('1')
-
-    return hamming_dist
-
-
-
-def find_duplicates_through_hashes(list_of_emotes: list[object]) -> dict[object: object]:
+def find_duplicates_through_hashes(emote_hash_dict: dict[object, hash]) -> dict[object: object]:
     '''
     This function will go through the list of emote objects and compare their hashes
     to find duplicates. For more information on this go here: https://pypi.org/project/ImageHash/
@@ -43,21 +23,32 @@ def find_duplicates_through_hashes(list_of_emotes: list[object]) -> dict[object:
 
     Returns: Dictionary object - keys are the original emote, list of other similar emote as values
     '''
-    dictionary_of_ids_and_duplicate_ids = {}
+    emotes_and_duplicates = {}
 
-    # If the hamming distance is past 8, then we can conclude the emotes are duplicate images
-    ideal_hamming_distance = 8
+    emote_list = list(emote_hash_dict.keys())
 
     # Check each emote's hash
-    for emote in list_of_emotes:
-        dictionary_of_ids_and_duplicate_ids[emote] = []
-        for second_emote in list_of_emotes:
-            
-            # FIXME: This is a big O(n^2) algorithm, this should be further improved for efficiency
-            # Luckily you can only have up to 50 static emotes so this is just 2500 comparisons at max.
-            if emote != second_emote:
-                hash_string_hamming_distance = get_hamming_distance(emote.hash_string, second_emote.hash_string)
-                if  hash_string_hamming_distance >= ideal_hamming_distance:
-                    dictionary_of_ids_and_duplicate_ids[emote].append(second_emote)
+    for i in range(len(emote_list)):
 
-    return dictionary_of_ids_and_duplicate_ids
+        first_emote = emote_list[i]
+        first_hash = emote_hash_dict[first_emote]
+
+        # make sure the emote actually has a hash to compare the others to... lol
+        if not first_hash:
+            continue
+
+        for j in range(i+1, len(emote_hash_dict.keys())):
+
+            comparison_emote = emote_list[j]
+            comparison_hash = emote_hash_dict[comparison_emote]
+
+            hashes_are_identical = first_hash == comparison_hash
+            # print(f'the hamming distance of these 2 emotes is: {hamming_distance}')
+            if  hashes_are_identical:
+                if first_emote in emotes_and_duplicates.keys():
+                    emotes_and_duplicates[first_emote].append(comparison_emote)
+                
+                else:
+                    emotes_and_duplicates[first_emote] = [comparison_emote]
+
+    return emotes_and_duplicates

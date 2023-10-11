@@ -7,6 +7,8 @@ from discord import app_commands
 
 import config
 import find_duplicate_emojis
+from moderator_check import user_is_moderator_or_higher
+from file_processing import File_Processing
 from database import Database
 from text_processing import Text_Processing
 from time_modulation import Time_Stuff
@@ -26,8 +28,11 @@ class Focus_Bot_Client(discord.Client):
         # we use this so the bot doesn't sync commands more than once
         self.synced = False
 
+        self.script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.SELF_CARE_CHANNEL_ID = config.discord_bot_credentials["Self_Care_Channel_ID"]
         self.server_id = config.discord_bot_credentials["Server_ID_for_Study_Fam"]
         self.user_id = config.discord_bot_credentials["Client_ID"]
+        self.Focus_Role_int = config.discord_bot_credentials["Focus_Role_ID"]
 
     async def on_ready(self):
         if not self.synced:  # check if slash commands have been synced
@@ -47,7 +52,7 @@ class Focus_Bot_Client(discord.Client):
         auto_delete_channel = guild.get_channel(auto_delete_channel_id)
 
         five_minutes_in_seconds = 300
-        asyncio.sleep(five_minutes_in_seconds)
+        await asyncio.sleep(five_minutes_in_seconds)
 
         async for message in auto_delete_channel.history(limit=None, oldest_first=True):
             if not message.pinned:
@@ -57,7 +62,8 @@ class Focus_Bot_Client(discord.Client):
         for thread in auto_delete_channel.threads:
             await thread.delete()
             asyncio.sleep(1)
-
+                
+        
     async def focus_mode_maintenance(self):
         await self.wait_until_ready()
 
@@ -108,7 +114,7 @@ class Focus_Bot_Client(discord.Client):
 
             if not last_message_sent_time:
                 # post the self-care reminder to the channel.
-                await post_channel_message(self.SELF_CARE_CHANNEL_ID, self_care_message_to_send)
+                await self_care_channel.send(self_care_message_to_send)
 
             else:
                 last_message_is_older_than_an_hour = Time_Stuff.is_input_time_past_threshold(
@@ -123,7 +129,7 @@ class Focus_Bot_Client(discord.Client):
                         await last_message.delete()
 
                     # post the self-care reminder to the channel.
-                    await post_channel_message(self.SELF_CARE_CHANNEL_ID, self_care_message_to_send)
+                    await self_care_channel.send(self_care_message_to_send)
 
             # pick a random number of seconds to wait between 1 hour minimum and 4 hours maximum
             # This ensures the bot will never post less than at least 6 times a day, but up to 24 times a day max.
@@ -173,19 +179,10 @@ class Focus_Bot_Client(discord.Client):
         os.remove(transcribed_text_filename)
 
 
-def return_file_name_with_current_directory(filename: str) -> str:
-
-    # get the current file path we're operating in, so we don't have to hard code this in.
-    # this also requires that the file be in the same working directory as this script.
-    CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
-    FILE_PATH_AND_NAME = os.path.join(CURRENT_DIRECTORY, filename)
-    return FILE_PATH_AND_NAME
-
-
 client = Focus_Bot_Client()
 tree = app_commands.CommandTree(client)
-Focus_Role_int: int = config.discord_bot_credentials["Focus_Role_ID"]
-database_file_name_and_path = return_file_name_with_current_directory(
+os.chdir(client.script_dir)
+database_file_name_and_path = File_Processing.return_file_name_with_current_directory(
     "Focus_Mode_Info.db")
 database_instance = Database(database_file_name_and_path)
 
@@ -211,7 +208,7 @@ async def on_message(message):
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")
 async def FocusMode(interaction: discord.Interaction, minutes: int):
-    Focus_Role_object = interaction.guild.get_role(Focus_Role_int)
+    Focus_Role_object = interaction.guild.get_role(client.Focus_Role_int)
     appropriate_response: str = Time_Stuff.time_responses(minutes)
 
     if minutes > 10080 or minutes < 0:
@@ -286,7 +283,7 @@ async def display_time_left_for_user(interaction: discord.Interaction):
 @tree.command(name="display_all_in_focus_mode", description="Displays all of the users currently in Focus Mode")
 async def display_all_in_focus_mode(interaction: discord.Interaction):
     string_to_send_to_users = ""
-    Focus_Role_Object = interaction.guild.get_role(Focus_Role_int)
+    Focus_Role_Object = interaction.guild.get_role(client.Focus_Role_int)
 
     # builds the list of users in focus from the database and in the line after, all the users who have focus that are
     # not in the database too.
@@ -338,7 +335,7 @@ async def test_response(interaction: discord.Interaction):
 
 @tree.command(name="give_max_focus_time", description="Warning, this will give you the focus role for a week straight.")
 async def give_max_focus_time(interaction: discord.Interaction):
-    Focus_Role_object = interaction.guild.get_role(Focus_Role_int)
+    Focus_Role_object = interaction.guild.get_role(client.Focus_Role_int)
     appropriate_response: str = Time_Stuff.time_responses(10080)
     user_info_from_db = database_instance.check_if_user_in_database(
         interaction.user.id)
@@ -382,13 +379,9 @@ async def remove_user_focus_override(interaction: discord.Interaction, user_to_b
     guild = client.get_guild(server_id)
     member = interaction.user
     focus_role_id = config.discord_bot_credentials["Focus_Role_ID"]
-    mod_role_id = config.discord_bot_credentials["Server_Mod_Role_ID"]
-    botmod_role_id = config.discord_bot_credentials["Server_Botmod_Role_ID"]
-    admin_role_id = config.discord_bot_credentials["Server_Admin_Role_ID"]
 
     # All we care about is if the user has the correct role, out of the 3 roles above, as long as they have at least one
-    user_doing_command_has_correct_authorization = discord.utils.get(member.roles, id=mod_role_id) or discord.utils.get(
-        member.roles, id=botmod_role_id) or discord.utils.get(member.roles, id=admin_role_id)
+    user_doing_command_has_correct_authorization = user_is_moderator_or_higher(interaction.user.roles)
 
     if user_doing_command_has_correct_authorization:
         user_to_be_removed_has_focus_role_currently = discord.utils.get(
@@ -417,7 +410,7 @@ async def remove_user_focus_override(interaction: discord.Interaction, user_to_b
 
 @tree.command(name="give_endless_focus_mode", description="Gives focus mode until a mod pulls you out.")
 async def give_endless_focus_mode(interaction: discord.Interaction):
-    Focus_Role_object = interaction.guild.get_role(Focus_Role_int)
+    Focus_Role_object = interaction.guild.get_role(client.Focus_Role_int)
     appropriate_response = "You will now be in focus mode with no set end date. Please message or tag a moderator to " \
                            "be removed from focus."
     await interaction.response.send_message(appropriate_response, ephemeral=True)
@@ -430,7 +423,7 @@ async def question_of_the_day(interaction: discord.Interaction):
     current_channel = interaction.channel
 
     # We need to do this if the script is being run in a directory that is different from the working directory.
-    questions_list_file_path_and_name = return_file_name_with_current_directory(
+    questions_list_file_path_and_name = File_Processing.return_file_name_with_current_directory(
         "conversation starters.txt")
 
     # get our question from the text file
@@ -447,35 +440,62 @@ async def question_of_the_day(interaction: discord.Interaction):
 async def Duplicate_Emote_command(Interaction: discord.Interaction):
     await Interaction.response.defer()
 
-    emote_list = find_duplicate_emojis.get_static_emotes(Interaction.guild.emojis)
+    if not user_is_moderator_or_higher(Interaction.user.roles):
+        Interaction.followup.send("You do not have the required permissions!")
 
-    potential_duplicates = find_duplicate_emojis.find_duplicates_through_hashes(emote_list)
+    image_save_errors = 0
 
-    if not potential_duplicates:
-        formatted_string_to_send_to_channel = 'There were no duplicates found!'
-        Interaction.channel.send(formatted_string_to_send_to_channel)
+    # iterate through the emotes and only create a list of emote objects from static image emotes
+    emote_list = []
+    for emote in Interaction.guild.emojis:
 
-    else:
+        if not emote.animated:
+            emote_filename = f'{emote.name} - {emote.id}.jpg'
+            emote_list.append(emote)
+
+            file_exists = File_Processing.check_if_file_exists(emote_filename)
+            
+            if not file_exists:
+                try:
+                    await emote.save(emote_filename)
+                
+                # if this error is raised, it didn't actually save the file
+                except discord.HTTPException as error:
+                    print(f"An HTTPException occurred: {error}")
+                    image_save_errors += 1
+
+    emote_hash_dict = find_duplicate_emojis.generate_hash_dict(emote_list=emote_list)
+
+    emote_and_dupe_dict = find_duplicate_emojis.find_duplicates_through_hashes(emote_hash_dict=emote_hash_dict)
+
+    emote_dict_contains_values = bool(len(emote_and_dupe_dict.keys()))
+
+    
+    if image_save_errors:
+        await Interaction.channel.send(f'There were {image_save_errors} errors trying to save the emoji images.')
+
+    elif emote_dict_contains_values:
 
         formatted_string_to_send_to_channel = ''
-        formatted_string_to_send_to_channel += f'Found: {len(potential_duplicates)} emotes with potential duplicates.'
+        formatted_string_to_send_to_channel += f'Found: {len(emote_and_dupe_dict.keys())} emotes with potential duplicates.'
         formatted_string_to_send_to_channel += 'Here are a list of emote names and their potential duplicates to check:'
 
-        for emote, duplicate_list in potential_duplicates.items():
+        for emote, duplicate_list in emote_and_dupe_dict.items():
 
             duplicate_emote_string = ''
             for duplicate_emote in duplicate_list:
-                duplicate_emote_string += f'Duplicate emote name: {duplicate_emote.name}\n'
+                duplicate_emote_string += f'{duplicate_emote.name} {str(duplicate_emote)} - ID: {duplicate_emote.id}\n'
+                await Interaction.channel.send(f'Emote: {emote.name} {str(emote)} - ID: {emote.id} \nPotential Duplicate Emotes: \n{duplicate_emote_string}')
+                
+                # sleep so we don't get rate limited lol
+                await asyncio.sleep(1)
 
-            formatted_string_to_send_to_channel += f'Emote: {emote.name}, Potential Duplicate Emotes: {duplicate_list_string}'
+    else:
+        formatted_string_to_send_to_channel = 'There were no duplicates found!'
+        await Interaction.channel.send(formatted_string_to_send_to_channel)
 
-        Interaction.channel.send(formatted_string_to_send_to_channel)
+    await Interaction.followup.send("Request Completed!")
 
-
-# Function to post a random message in the specified channel
-async def post_channel_message(channel_id: int, message: str):
-    channel = client.get_channel(channel_id)
-    await channel.send(message)
 
 
 TOKEN = config.discord_bot_credentials["API_Key"]

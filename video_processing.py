@@ -77,7 +77,7 @@ class Video_Processing:
         """
         text_file_header = ""
         text_file_header += f"Date: {Time_Stuff.get_current_date()}\n"
-        text_file_header += f"Video_ID: {video_id}\n"
+        text_file_header += f"Video ID: {video_id}\n"
         text_file_header += f"Video Title: {video_title}\n"
         text_file_header += f"Video URL: {video_url}\n\n\n"
 

@@ -169,13 +169,19 @@ class Focus_Bot_Client(discord.Client):
     @staticmethod
     async def YT_Video_Transcriptions(message: object) -> None:
         video_link = Text_Processing.extract_video_url(message.content)
+        Video_Processing.transcribe_yt_video_main(video_link)
         video_title = Video_Processing.get_video_title(video_link)
+        print("Trying to transcribe this video...")
         transcribed_text_filename = Text_Processing.format_file_name(video_title)
-        thread = await message.create_thread(video_title)
+        video_title_for_thread_name = Text_Processing.format_title_of_vid_for_txt_file(video_title)
+
+        thread = await message.channel.create_thread(name=video_title_for_thread_name)
+        
         with open(transcribed_text_filename, encoding="utf-8") as txt_file:
             txt_file_to_upload = discord.File(
                 txt_file, filename=transcribed_text_filename)
             await thread.send(content="Transcription File: ", file=txt_file_to_upload)
+
         os.remove(transcribed_text_filename)
 
 
@@ -205,7 +211,7 @@ async def on_message(message):
             await client.YT_Video_Transcriptions(message=message)
         
         notification_message = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
-        await Dr_K_Content_Channel.send(notification_message)
+        # await Dr_K_Content_Channel.send(notification_message)
 
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")

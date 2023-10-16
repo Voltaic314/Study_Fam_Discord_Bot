@@ -1,6 +1,5 @@
 import os
 
-import speech_recognition as sr
 from pytube import YouTube
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.formatters import TextFormatter
@@ -47,12 +46,12 @@ class Video_Processing:
     @staticmethod
     def get_video_title(url: str):
         youtube = YouTube(url)
-        title_of_video = youtube.title.title()
+        title_of_video = youtube.title
         return title_of_video
     
     @staticmethod
     def get_video_id(url: str) -> str:
-        youtube = YouTube(url=url)
+        youtube = YouTube(url)
         return youtube.video_id
     
 

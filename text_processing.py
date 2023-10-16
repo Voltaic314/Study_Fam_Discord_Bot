@@ -58,3 +58,12 @@ class Text_Processing:
         # Retrieve the link posted from the list variable, it will always be the last item in the list.
         YouTube_URL = split_up_message[-1]
         return YouTube_URL
+    
+    @staticmethod
+    def format_file_name(video_title):
+        return Text_Processing.remove_special_characters_from_string(video_title).replace(" ", "_") + ".txt"
+
+    @staticmethod
+    def format_title_of_vid_for_txt_file(video_title):
+        return Text_Processing.remove_special_characters_from_string(video_title)
+

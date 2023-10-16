@@ -170,12 +170,12 @@ class Focus_Bot_Client(discord.Client):
     async def YT_Video_Transcriptions(message: object) -> None:
         video_link = Text_Processing.extract_video_url(message.content)
         video_title = Video_Processing.get_video_title(video_link)
-        transcribed_text_filename = Video_Processing.transcribe_a_YT_video(video_link)
+        transcribed_text_filename = Text_Processing.format_file_name(video_title)
         thread = await message.create_thread(video_title)
         with open(transcribed_text_filename, encoding="utf-8") as txt_file:
             txt_file_to_upload = discord.File(
                 txt_file, filename=transcribed_text_filename)
-        await thread.send(content="Transcription File:", file=txt_file_to_upload)
+            await thread.send(content="Transcription File: ", file=txt_file_to_upload)
         os.remove(transcribed_text_filename)
 
 
@@ -200,10 +200,12 @@ async def on_message(message):
     Dr_K_Content_Channel = guild.get_channel(Dr_K_Content_Channel_ID)
 
     if message.channel.id == Dr_K_Content_Channel_ID and message.author.id == Carl_Bot_User_ID:
+        
         if "youtu.be/" in message.content or "youtube.com" in message.content:
-            # await client.YT_Video_Transcriptions(message=message)
-            notification_message = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
-            await Dr_K_Content_Channel.send(notification_message)
+            await client.YT_Video_Transcriptions(message=message)
+        
+        notification_message = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
+        await Dr_K_Content_Channel.send(notification_message)
 
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")

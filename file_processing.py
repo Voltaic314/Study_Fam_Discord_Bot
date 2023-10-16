@@ -57,3 +57,8 @@ class File_Processing:
     @staticmethod
     def check_if_file_exists(filename):
         return os.path.exists(filename)
+
+    @staticmethod
+    def write_string_to_text_file(txt_filename, string_to_write):
+        with open(txt_filename, 'a') as txt_file:
+            txt_file.write(string_to_write)

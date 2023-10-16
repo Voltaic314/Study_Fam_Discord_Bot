@@ -2,11 +2,12 @@ import os
 
 import speech_recognition as sr
 from pytube import YouTube
-from pydub import AudioSegment
-import ffmpeg
+from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api.formatters import TextFormatter
 
 from time_modulation import Time_Stuff
 from text_processing import Text_Processing
+from file_processing import File_Processing
 
 
 class Video_Processing:
@@ -42,83 +43,55 @@ class Video_Processing:
             file_path = os.path.join(current_directory, filename)
             return os.path.exists(file_path)
 
-    @staticmethod
-    def convert_mp3_to_wav_pcm(mp3_path):
-
-        current_directory = os.path.dirname(os.path.abspath(__file__))
-        # Change the current working directory to the script's directory
-        os.chdir(current_directory)
-        # mp3_path = os.path.abspath(mp3_path)
-        
-        with open(mp3_path, "rb") as mp3_file:
-            audio = AudioSegment.from_mp3(mp3_file)
-            # Set the sample width to 2 bytes (16 bits) for PCM
-            audio = audio.set_sample_width(2)
-            audio.export(format="wav")
-
 
     @staticmethod
     def get_video_title(url: str):
         youtube = YouTube(url)
         title_of_video = youtube.title.title()
         return title_of_video
+    
+    @staticmethod
+    def get_video_id(url: str) -> str:
+        youtube = YouTube(url=url)
+        return youtube.video_id
+    
 
     @staticmethod
-    def download_video_as_mp3(url: str) -> (str, str) or bool:
-        youtube = YouTube(url)
-        title_of_video = youtube.title.title()
-        video = youtube.streams.get_audio_only()
-        safe_name_to_save = Text_Processing.remove_special_characters_from_string(title_of_video).title().replace(" ", "") + ".mp3"
-        video.download(filename=safe_name_to_save)
-        the_audio_saved_successfully = Video_Processing.file_exists(safe_name_to_save, True)
-        if the_audio_saved_successfully:
-            return safe_name_to_save, youtube.video_id
-        else:
-            return False
-
+    def get_text_from_video(video_id):
+        transcript = YouTubeTranscriptApi.get_transcript(video_id=video_id)
+        formatter = TextFormatter()
+        txt_formatted = formatter.format_transcript(transcript=transcript)
+        
+        return txt_formatted
+    
     @staticmethod
-    def convert_audio_to_speech_text(audio_filename: str, text_filename_to_save: str,
-                                     remove_audio_file: bool, text_file_header: str) -> None:
-        recognizer = sr.Recognizer()
-        full_audio_file_path = Video_Processing.get_current_file_path(audio_filename)
-        with sr.AudioFile(full_audio_file_path) as source:
-            audio = recognizer.record(source)  # Record the entire audio file
-        try:
-            text = recognizer.recognize_google(audio)
-            full_text_file_path = Video_Processing.get_current_file_path(
-                text_filename_to_save)
-            with open(full_text_file_path, encoding="utf-8", mode="w") as save_file:
-                save_file.write(text_file_header)
-                save_file.write(text)
-        except sr.UnknownValueError:
-            print("Google Speech Recognition could not understand the audio")
-        except sr.RequestError as e:
-            print(f"Could not request results from Google Speech Recognition service; {e}")
-
-        if remove_audio_file:
-            os.remove(full_audio_file_path)
-
-    @staticmethod
-    def transcribe_a_YT_video(YT_Video_Url: str) -> str:
+    def format_text_file_intro(video_id: str, video_title: str, video_url: str) -> str:
         """
-        This will take a YT URL and transcribe it to a text file. It will then return the text file name if successful.
-        :param YT_Video_Url: the full YT URL link for the video.
-        :returns: String of the text file name that the video was transcribed to.
+        This function will take in a YT video object and spit out a formatted string
+        with all the fancy information that we want at the top of our transcription txt file.
+        
+        :param video_id: a YT video id, usually a string.
+        :param video_title: a UTF-8 txt file friendly formatted video title string
+        :param video_url: the full YT watch url string
+        
+        :returns: formatted string to add to the top of the transcription txt file.
         """
-        audio_filename, video_id = Video_Processing.download_video_as_mp3(YT_Video_Url)
-        Video_Processing.convert_mp3_to_wav_pcm(audio_filename)
-        full_file_path = Video_Processing.get_current_file_path(audio_filename)
-        audio_download_was_successful = Video_Processing.file_exists(full_file_path, True)
-        if audio_download_was_successful:
-            txt_filename = audio_filename[:-3] + f"_video_id={video_id}.txt"
-            text_file_header = ""
-            text_file_header += f"Date: {Time_Stuff.get_current_date()}\n"
-            text_file_header += f"Video_ID: {video_id}\n"
-            text_file_header += f"Video Title: {audio_filename[:-3]}"
-            text_file_header += f"Video URL: {YT_Video_Url}"
-            Video_Processing.convert_audio_to_speech_text(audio_filename, txt_filename, True, text_file_header)
-            text_file_path = Video_Processing.get_current_file_path(txt_filename)
-            text_transcription_saved_a_txt_file = Video_Processing.file_exists(
-                text_file_path, True)
-            if text_transcription_saved_a_txt_file:
-                return text_file_path
+        text_file_header = ""
+        text_file_header += f"Date: {Time_Stuff.get_current_date()}\n"
+        text_file_header += f"Video_ID: {video_id}\n"
+        text_file_header += f"Video Title: {video_title}\n"
+        text_file_header += f"Video URL: {video_url}\n\n\n"
+
+        return text_file_header
+    
+    @staticmethod
+    def transcribe_yt_video_main(yt_url: str):
+
+        video_id = Video_Processing.get_video_id(yt_url)
+        video_title = Video_Processing.get_video_title(yt_url)
+        txt_filename = Text_Processing.format_file_name(video_title=video_title)
+        video_title = Text_Processing.format_title_of_vid_for_txt_file(video_title=video_title)
+        video_text = Video_Processing.get_text_from_video(video_id=video_id)
+        header_text = Video_Processing.format_text_file_intro(video_id, video_title, yt_url)
+        total_txt_to_write = header_text + video_text
+        File_Processing.write_string_to_text_file(txt_filename=txt_filename, string_to_write=total_txt_to_write)

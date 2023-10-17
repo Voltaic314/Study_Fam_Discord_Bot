@@ -14,4 +14,8 @@ Current functionalities:
 
 4. Question of the day - this bot will post a conversation starter question of the day from a txt file of given questions. Feel free to supply your own text file here if you wish.
 
-5. Dr K Content Pings for every time healthy gamer uploads a YouTube video, YT Short, or starts a live stream on YT or Twitch. 
+5. Dr K Content Pings for every time healthy gamer uploads a YouTube video, YT Short, or starts a live stream on YT or Twitch.
+
+6. Emote duplication detection. It can now scan the server's static emotes to determine whether there are duplicate emotes in the server. Like for example, if the server admin uploads emote a, and then eventually emote b, and it turns out that a and b are exactly the same image, even though they may have different IDs and different names. The bot can now detect those. It can also come up with false positives and this is just due to the hashing algorithm I am using & its limitations. but I am working on improving that to where you can tell it to ignore certain emote pairs in the results. I'll fix that eventually!
+
+7. Now the bot can automatically transcribe YT videos and upload the transcription plain text txt files as a thread to the message that got posted announcing the new video from that creator. In this case we have it doing for all of Dr K (healthy gamer) videos when they get uploaded and announced to the server. :) 

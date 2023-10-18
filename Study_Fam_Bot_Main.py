@@ -196,23 +196,38 @@ database_instance = Database(database_file_name_and_path)
 @client.event
 async def on_message(message):
     # Defining our variables for our function here
-    Dr_K_Content_Ping_Role_ID = 1138514811114770522
+    Dr_K_YT_Videos_Content_Ping_Role_ID = 1164018979166240768
+    Dr_K_YT_Shorts_Content_Ping_Role_ID = 1164022532379246613
+    Dr_K_Twitch_Content_Ping_Role_ID = 1164022602147319899
     Carl_Bot_User_ID = 235148962103951360
     Dr_K_Content_Channel_ID = 1078121853266165870
 
     # Passing in our variables to create our objects & object attributes.
     guild = client.get_guild(client.server_id)
-    Dr_K_Content_Ping_Role = guild.get_role(Dr_K_Content_Ping_Role_ID)
+    Dr_K_YT_Videos_Content_Ping_Role = guild.get_role(Dr_K_YT_Videos_Content_Ping_Role_ID)
+    Dr_K_YT_Shorts_Content_Ping_Role = guild.get_role(Dr_K_YT_Shorts_Content_Ping_Role_ID)
+    Dr_K_Twitch_Content_Ping_Role = guild.get_role(Dr_K_Twitch_Content_Ping_Role_ID)
     Dr_K_Content_Channel = guild.get_channel(Dr_K_Content_Channel_ID)
 
     if message.channel.id == Dr_K_Content_Channel_ID and message.author.id == Carl_Bot_User_ID:
         
-        if "youtu.be/" in message.content or "youtube.com" in message.content:
+        if "youtu.be/" in message.content:
             await client.YT_Video_Transcriptions(message=message)
+            video_url = Text_Processing.extract_video_url(message_contents=message.content)
+            video_id = Text_Processing.extract_vid_id_from_shortened_yt_url(shortened_url=video_url)
+            video_is_a_short = Video_Processing.is_yt_video_a_short(video_id=video_id)
+            if video_is_a_short:
+                notification_message = f"{Dr_K_YT_Shorts_Content_Ping_Role.mention} - Dr. K has uploaded a short!"
+                await Dr_K_Content_Channel.send(notification_message)
+            
+            else:
+                notification_message = f"{Dr_K_YT_Videos_Content_Ping_Role.mention} - Dr. K has uploaded a YouTube video!"
+                await Dr_K_Content_Channel.send(notification_message)
         
-        notification_message = f"{Dr_K_Content_Ping_Role.mention} - Dr. K has uploaded new content posted above!"
-        await Dr_K_Content_Channel.send(notification_message)
-
+        elif "live" in message.content:
+            notification_message = f"{Dr_K_Twitch_Content_Ping_Role.mention} - Dr. K has started a live stream on Twitch!"
+            await Dr_K_Content_Channel.send(notification_message)       
+        
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")
 async def FocusMode(interaction: discord.Interaction, minutes: int):

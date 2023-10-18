@@ -67,3 +67,18 @@ class Text_Processing:
     def format_title_of_vid_for_txt_file(video_title):
         return Text_Processing.remove_special_characters_from_string(video_title)
 
+
+    @staticmethod
+    def extract_vid_id_from_shortened_yt_url(shortened_url: str) -> str:
+        '''
+        This function takes a shortened youtube url like youtu.be links and 
+        parses it for a video id. 
+
+        Parameters: str of a youtu.be url
+
+        Returns: video ID
+        '''
+        if not "/" in shortened_url:
+            return ''
+
+        return shortened_url.split('/')[-1]

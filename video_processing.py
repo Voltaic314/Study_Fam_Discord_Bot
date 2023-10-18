@@ -1,4 +1,5 @@
 import os
+import requests
 
 from pytube import YouTube
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -94,3 +95,32 @@ class Video_Processing:
         header_text = Video_Processing.format_text_file_intro(video_id, video_title, yt_url)
         total_txt_to_write = header_text + video_text
         File_Processing.write_string_to_text_file(txt_filename=txt_filename, string_to_write=total_txt_to_write)
+
+
+    @staticmethod
+    def is_yt_video_a_short(video_id: str) -> bool:
+        '''
+        This function takes a video ID and sees if it's actually a short or not.
+        We have to use network requests to truly know this or not.
+
+        Basically I noticed this trick with YouTube where if you take a normal video
+        and put its ID into a shorts base link, it will kick you back to a normal
+        YT video url. But with shorts it won't do this. So we can track this redirect
+        and use it for our testing purposes.
+
+        Parameters: video ID, that last bit at the end of the YT vid url.
+
+        Returns: True if it is a short and false otherwise.
+        '''
+        yt_short_url = f'https://www.youtube.com/shorts/{video_id}'
+
+        try:
+            response = requests.get(yt_short_url)
+            return response.url != yt_short_url
+        except requests.exceptions.RequestException:
+            return False
+        
+
+url = 'https://youtu.be/dgRSfhoHE4g'
+video_id = Text_Processing.extract_vid_id_from_shortened_yt_url(shortened_url=url)
+print(Video_Processing.is_yt_video_a_short(video_id=video_id))

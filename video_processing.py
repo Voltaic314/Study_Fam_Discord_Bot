@@ -116,11 +116,7 @@ class Video_Processing:
 
         try:
             response = requests.get(yt_short_url)
-            return response.url != yt_short_url
+            return response.url == yt_short_url
         except requests.exceptions.RequestException:
             return False
         
-
-url = 'https://youtu.be/dgRSfhoHE4g'
-video_id = Text_Processing.extract_vid_id_from_shortened_yt_url(shortened_url=url)
-print(Video_Processing.is_yt_video_a_short(video_id=video_id))

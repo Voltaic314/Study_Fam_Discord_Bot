@@ -13,6 +13,7 @@ from database import Database
 from text_processing import Text_Processing
 from time_modulation import Time_Stuff
 from video_processing import Video_Processing
+from image_processing import Image_Processing
 from advice import Advice
 
 
@@ -43,11 +44,20 @@ class Focus_Bot_Client(discord.Client):
         advice_to_update = discord.Game(full_advice_string)
         await bot.change_presence(activity=advice_to_update)
 
+    async def change_bot_avatar(self, image_filename: str):
+        with open(image_filename, 'rb') as avatar_file:
+            await self.bot.user.edit(avatar=avatar_file.read())
+
     async def on_ready(self):
         if not self.synced:  # check if slash commands have been synced
             await tree.sync()
             self.synced = True
         print(f"We have logged in as {self.user}.")
+
+        # generate a random person's image for our daily profile picture
+        Image_Processing.get_random_image()
+        image_filename = 'Profile_Picture.jpg'
+        await self.change_bot_avatar(image_filename=image_filename)
 
         await self.get_activity_object()
 

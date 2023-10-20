@@ -13,6 +13,7 @@ from database import Database
 from text_processing import Text_Processing
 from time_modulation import Time_Stuff
 from video_processing import Video_Processing
+from advice import Advice
 
 
 class Focus_Bot_Client(discord.Client):
@@ -39,6 +40,13 @@ class Focus_Bot_Client(discord.Client):
             await tree.sync()
             self.synced = True
         print(f"We have logged in as {self.user}.")
+
+        
+        advice_endpoints = config.advice_api_endpoints
+        
+        daily_random_advice = Advice(endpoints=advice_endpoints).get_random_advice()
+
+        await discord.Activity(type=discord.ActivityType.custom(daily_random_advice))
 
         # manage and sort out the focus users
         self.loop.create_task(self.focus_mode_maintenance())
@@ -456,21 +464,22 @@ async def question_of_the_day(interaction: discord.Interaction):
     # send the question of the day to the channel the user typed the command in.
     message_to_send = f"**Question of the Day:** {question_pulled_from_text_file}"
     await current_channel.send(message_to_send)
+    await interaction.followup.send("Question sent to channel!")
 
 
 # This is a function to list out potential duplicate emotes in the server. 
 @tree.command(name="find_duplicate_emotes", description="Responds with a list of potential duplicate emotes in the server's emote list")
-async def Duplicate_Emote_command(Interaction: discord.Interaction):
+async def Duplicate_Emote_command(interaction: discord.Interaction):
     await Interaction.response.defer()
 
-    if not user_is_moderator_or_higher(Interaction.user.roles):
-        Interaction.followup.send("You do not have the required permissions!")
+    if not user_is_moderator_or_higher(interaction.user.roles):
+        interaction.followup.send("You do not have the required permissions!")
 
     image_save_errors = 0
 
     # iterate through the emotes and only create a list of emote objects from static image emotes
     emote_list = []
-    for emote in Interaction.guild.emojis:
+    for emote in interaction.guild.emojis:
 
         if not emote.animated:
             emote_filename = f'{emote.name} - {emote.id}.jpg'
@@ -495,7 +504,7 @@ async def Duplicate_Emote_command(Interaction: discord.Interaction):
 
     
     if image_save_errors:
-        await Interaction.channel.send(f'There were {image_save_errors} errors trying to save the emoji images.')
+        await interaction.channel.send(f'There were {image_save_errors} errors trying to save the emoji images.')
 
     elif emote_dict_contains_values:
 
@@ -508,16 +517,24 @@ async def Duplicate_Emote_command(Interaction: discord.Interaction):
             duplicate_emote_string = ''
             for duplicate_emote in duplicate_list:
                 duplicate_emote_string += f'{duplicate_emote.name} {str(duplicate_emote)} - ID: {duplicate_emote.id}\n'
-                await Interaction.channel.send(f'Emote: {emote.name} {str(emote)} - ID: {emote.id} \nPotential Duplicate Emotes: \n{duplicate_emote_string}')
+                await interaction.channel.send(f'Emote: {emote.name} {str(emote)} - ID: {emote.id} \nPotential Duplicate Emotes: \n{duplicate_emote_string}')
                 
                 # sleep so we don't get rate limited lol
                 await asyncio.sleep(1)
 
     else:
         formatted_string_to_send_to_channel = 'There were no duplicates found!'
-        await Interaction.channel.send(formatted_string_to_send_to_channel)
+        await interaction.channel.send(formatted_string_to_send_to_channel)
 
-    await Interaction.followup.send("Request Completed!")
+    await interaction.followup.send("Request Completed!")
+
+
+@tree.command("get_random_advice", description="Responds with random advice from the advice API.")
+async def get_random_advice_for_bot_command(interaction: discord.interaction):
+    await interaction.response.defer()
+    advice = Advice(config.advice_api_endpoints).get_random_advice()
+    await interaction.channel.send(advice)
+    await interaction.followup.send("Advice sent to channel!")
 
 
 

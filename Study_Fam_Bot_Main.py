@@ -217,15 +217,19 @@ database_file_name_and_path = File_Processing.return_file_name_with_current_dire
 database_instance = Database(database_file_name_and_path)
 
 
-@client.event
-async def on_ready():
-    # generate a random person's image for our daily profile picture
-    img_was_saved = Image_Processing.get_random_image()
-    image_filename = 'Profile_Picture.jpg'
+'''
+A relic of the past. A proof of concept. A funny idea nonetheless,
+but it would not be a permanent fixture. 
+'''
+# @client.event
+# async def on_ready():
+#     # generate a random person's image for our daily profile picture
+#     img_was_saved = Image_Processing.get_random_image()
+#     image_filename = 'Profile_Picture.jpg'
 
-    # set the profile picture to that image
-    with open(image_filename, 'rb') as image:
-        await client.user.edit(avatar=image.read())
+#     # set the profile picture to that image
+#     with open(image_filename, 'rb') as image:
+#         await client.user.edit(avatar=image.read())
 
 
 @client.event

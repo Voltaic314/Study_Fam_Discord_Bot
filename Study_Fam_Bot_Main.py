@@ -35,18 +35,20 @@ class Focus_Bot_Client(discord.Client):
         self.user_id = config.discord_bot_credentials["Client_ID"]
         self.Focus_Role_int = config.discord_bot_credentials["Focus_Role_ID"]
 
+    async def get_activity_object(bot: object) -> object:
+        # setup the advice variables and set the daily status to whatever the advice is
+        advice_endpoints = config.advice_api_endpoints        
+        daily_random_advice = f'Advice: {Advice(endpoints=advice_endpoints).get_random_advice()}'
+        advice_to_update = discord.Game(daily_random_advice)
+        await bot.change_presence(activity=advice_to_update)
+
     async def on_ready(self):
         if not self.synced:  # check if slash commands have been synced
             await tree.sync()
             self.synced = True
         print(f"We have logged in as {self.user}.")
 
-        
-        advice_endpoints = config.advice_api_endpoints
-        
-        daily_random_advice = Advice(endpoints=advice_endpoints).get_random_advice()
-
-        await discord.Activity(type=discord.ActivityType.custom(daily_random_advice))
+        await self.get_activity_object()
 
         # manage and sort out the focus users
         self.loop.create_task(self.focus_mode_maintenance())
@@ -529,8 +531,8 @@ async def Duplicate_Emote_command(interaction: discord.Interaction):
     await interaction.followup.send("Request Completed!")
 
 
-@tree.command("get_random_advice", description="Responds with random advice from the advice API.")
-async def get_random_advice_for_bot_command(interaction: discord.interaction):
+@tree.command(name="get_random_advice", description="Responds with random advice from the advice API.")
+async def get_random_advice_for_bot_command(interaction: discord.Interaction):
     await interaction.response.defer()
     advice = Advice(config.advice_api_endpoints).get_random_advice()
     await interaction.channel.send(advice)

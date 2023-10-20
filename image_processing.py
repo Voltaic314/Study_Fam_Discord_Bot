@@ -43,31 +43,26 @@ class Image_Processing:
             print(f"An error occurred: {e}")
 
     @staticmethod
-    def get_random_image() -> None:
+    def get_random_image() -> bool:
         # The URL of the website
         url = 'https://thispersondoesnotexist.com/'
 
         # Send a GET request to the website
         response = requests.get(url)
 
-        # Check if the request was successful
+        # Check if the image request was successful
         if response.status_code == 200:
-            # Parse the HTML content with BeautifulSoup
-            soup = BeautifulSoup(response.text, 'html.parser')
+            # Open the image and save it
+            
+            with open('Profile_Picture.jpg', 'wb') as file:
+                file.write(response.content)
 
-            # Find the image tag
-            img_tag = soup.find('img')
-
-            if img_tag and 'src' in img_tag.attrs:
-                # Get the image URL from the 'src' attribute
-                image_url = img_tag['src']
-
-                # Send a GET request to the image URL
-                image_response = requests.get(image_url)
-
-                # Check if the image request was successful
-                if image_response.status_code == 200:
-                    # Open the image and save it
-                    image = Image.open(BytesIO(image_response.content))
-                    image.save('Profile_Picture.jpg')
+                if os.path.exists('Profile_Picture.jpg'):
                     Image_Processing.resize_image_to_512x512('Profile_Picture.jpg')
+
+        return os.path.exists('Profile_Picture.jpg')
+    
+
+    @staticmethod
+    def get_img_filesize(image_filename: str) -> int:
+        return os.stat(image_filename)

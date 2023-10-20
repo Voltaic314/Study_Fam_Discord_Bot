@@ -45,8 +45,9 @@ class Focus_Bot_Client(discord.Client):
         await bot.change_presence(activity=advice_to_update)
 
     async def change_bot_avatar(self, image_filename: str):
+        image_filesize = Image_Processing.get_img_filesize(image_filename=image_filename)
         with open(image_filename, 'rb') as avatar_file:
-            await self.bot.user.edit(avatar=avatar_file.read())
+            await self.user.avatar.replace(size=image_filesize, format='jpg')
 
     async def on_ready(self):
         if not self.synced:  # check if slash commands have been synced
@@ -55,9 +56,11 @@ class Focus_Bot_Client(discord.Client):
         print(f"We have logged in as {self.user}.")
 
         # generate a random person's image for our daily profile picture
-        Image_Processing.get_random_image()
+        img_was_saved = Image_Processing.get_random_image()
         image_filename = 'Profile_Picture.jpg'
-        await self.change_bot_avatar(image_filename=image_filename)
+
+        if img_was_saved:
+            await self.change_bot_avatar(image_filename=image_filename)
 
         await self.get_activity_object()
 
@@ -212,6 +215,17 @@ os.chdir(client.script_dir)
 database_file_name_and_path = File_Processing.return_file_name_with_current_directory(
     "Focus_Mode_Info.db")
 database_instance = Database(database_file_name_and_path)
+
+
+@client.event
+async def on_ready():
+    # generate a random person's image for our daily profile picture
+    img_was_saved = Image_Processing.get_random_image()
+    image_filename = 'Profile_Picture.jpg'
+
+    # set the profile picture to that image
+    with open(image_filename, 'rb') as image:
+        await client.user.edit(avatar=image.read())
 
 
 @client.event

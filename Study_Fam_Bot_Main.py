@@ -38,8 +38,9 @@ class Focus_Bot_Client(discord.Client):
     async def get_activity_object(bot: object) -> object:
         # setup the advice variables and set the daily status to whatever the advice is
         advice_endpoints = config.advice_api_endpoints        
-        daily_random_advice = f'Advice: {Advice(endpoints=advice_endpoints).get_random_advice()}'
-        advice_to_update = discord.Game(daily_random_advice)
+        daily_random_advice = Advice(endpoints=advice_endpoints).get_random_advice()
+        full_advice_string = f'Advice: {daily_random_advice}'
+        advice_to_update = discord.Game(full_advice_string)
         await bot.change_presence(activity=advice_to_update)
 
     async def on_ready(self):

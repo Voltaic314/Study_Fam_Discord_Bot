@@ -44,23 +44,11 @@ class Focus_Bot_Client(discord.Client):
         advice_to_update = discord.Game(full_advice_string)
         await bot.change_presence(activity=advice_to_update)
 
-    async def change_bot_avatar(self, image_filename: str):
-        image_filesize = Image_Processing.get_img_filesize(image_filename=image_filename)
-        with open(image_filename, 'rb') as avatar_file:
-            await self.user.avatar.replace(size=image_filesize, format='jpg')
-
     async def on_ready(self):
         if not self.synced:  # check if slash commands have been synced
             await tree.sync()
             self.synced = True
         print(f"We have logged in as {self.user}.")
-
-        # generate a random person's image for our daily profile picture
-        img_was_saved = Image_Processing.get_random_image()
-        image_filename = 'Profile_Picture.jpg'
-
-        if img_was_saved:
-            await self.change_bot_avatar(image_filename=image_filename)
 
         await self.get_activity_object()
 

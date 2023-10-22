@@ -6,6 +6,7 @@ Date: 10/16/2023
 The purpose of this module is to transcribe a given YT video into a 
 text file given the YT url provided from user input.
 '''
+import os
 from pytube import YouTube
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.formatters import TextFormatter
@@ -128,14 +129,16 @@ def write_string_to_text_file(txt_filename: str, string_to_write: str) -> None:
         txt_file.write(string_to_write)
 
 
-def transcribe_video():
+def transcribe_video(video_url=None) -> str:
     '''
     This function asks for the user to input a video url, then transcribes that video into text.
     It then saves that text to a txt file in the same directory as this script is in.
 
-    Returns: None
+    Returns: str of text filename if it exists, None if not.
     '''
-    video_url = get_video_url_to_transcribe()
+    if video_url == None:
+        video_url = get_video_url_to_transcribe()
+    
     video_title, video_id = get_video_info(video_url=video_url)
     video_title = remove_special_characters_from_string(video_title)
     txt_file_header = format_text_file_intro(video_title=video_title, video_url=video_url)
@@ -143,6 +146,9 @@ def transcribe_video():
     txt_from_vid = get_text_from_video(video_id=video_id)
     total_txt_to_write = txt_file_header + txt_from_vid
     write_string_to_text_file(txt_file_friendly_name, total_txt_to_write)
+
+    if os.path.exists(txt_file_friendly_name):
+        return txt_file_friendly_name
 
 
 if __name__ == "__main__":

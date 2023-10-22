@@ -7,7 +7,9 @@ from discord import app_commands
 
 import config
 import find_duplicate_emojis
+from write_website_text_from_url import write_text_to_txt_file_from_url
 from moderator_check import user_is_moderator_or_higher
+from transcribe_a_video_and_save_to_txt import transcribe_video
 from file_processing import File_Processing
 from database import Database
 from text_processing import Text_Processing
@@ -180,6 +182,7 @@ class Focus_Bot_Client(discord.Client):
 
     @staticmethod
     async def YT_Video_Transcriptions(message: object) -> None:
+    
         video_link = Text_Processing.extract_video_url(message.content)
         Video_Processing.transcribe_yt_video_main(video_link)
         video_title = Video_Processing.get_video_title(video_link)
@@ -555,6 +558,40 @@ async def get_random_advice_for_bot_command(interaction: discord.Interaction):
     await interaction.channel.send(advice)
     await interaction.followup.send("Advice sent to channel!")
 
+
+@tree.command(name="extract_text_from_url", description="Extracts website's </p> text for you, writes it to a txt file, and uploads that to the channel.")
+async def extract_text_from_url(interaction: discord.Interaction, url: str):
+    await interaction.response.defer()
+    
+    text_filename = write_text_to_txt_file_from_url(url=url)
+    
+    if text_filename:
+    
+        with open(text_filename, encoding="utf-8") as txt_file:
+            txt_file_to_upload = discord.File(
+                txt_file, filename=text_filename)
+            await interaction.channel.send(content="Here you go!", file=txt_file_to_upload)
+            os.remove(text_filename)
+            await interaction.followup.send("Website text sent to channel! (Request Fulfilled)")
+    
+    else:
+        await interaction.followup.send(content="I'm sorry. We could not get the websíte's text for some reason... try again later.")
+
+
+@tree.command(name="transcribe_a_yt_video", description="transcribes a YT video into a txt file then uploads that txt file to the channel.")
+async def transcribe_a_yt_video(interaction: discord.Interaction, yt_url: str):
+    await interaction.response.defer()
+
+    txt_filename = transcribe_video(yt_url)
+    if txt_filename:
+        with open(txt_filename, encoding="utf-8") as txt_file:
+            txt_file_to_upload = discord.File(txt_file, filename=txt_filename)
+            await interaction.channel.send(content="Here you go!", file=txt_file_to_upload)
+            os.remove(txt_filename)
+            await interaction.followup.send("YT video text sent to channel! (Request fulfilled)")
+        
+    else:
+        await interaction.followup.send(content="I'm sorry. We could not get the video's text for some reason... try again later.")
 
 
 TOKEN = config.discord_bot_credentials["API_Key"]

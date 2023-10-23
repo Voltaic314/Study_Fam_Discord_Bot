@@ -39,13 +39,13 @@ class Focus_Bot_Client(discord.Client):
         self.user_id = config.discord_bot_credentials["Client_ID"]
         self.Focus_Role_int = config.discord_bot_credentials["Focus_Role_ID"]
 
-    async def get_activity_object(bot: object) -> object:
+    async def get_activity_object(self) -> object:
         # setup the advice variables and set the daily status to whatever the advice is
         advice_endpoints = config.advice_api_endpoints        
         daily_random_advice = Advice(endpoints=advice_endpoints).get_random_advice()
         full_advice_string = f'Advice: {daily_random_advice}'
         advice_to_update = discord.Game(full_advice_string)
-        await bot.change_presence(activity=advice_to_update)
+        await self.change_presence(activity=advice_to_update)
 
     async def on_ready(self):
         if not self.synced:  # check if slash commands have been synced

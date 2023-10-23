@@ -27,6 +27,7 @@ class Focus_Bot_Client(discord.Client):
         intents.members = True  # Enable the GUILD_MEMBERS intent
         intents.messages = True
         intents.message_content = True
+        intents.reactions = True
         super().__init__(intents=intents)
 
         # we use this so the bot doesn't sync commands more than once
@@ -221,6 +222,72 @@ but it would not be a permanent fixture.
 #     # set the profile picture to that image
 #     with open(image_filename, 'rb') as image:
 #         await client.user.edit(avatar=image.read())
+
+def generate_starboard_embed(message, star_count):
+    starboard_message = discord.Embed(
+        title="Starred Message",
+        description=f"New Star Count: {star_count}\n{message.content}",
+        color=0xFFFF00  # Yellow color
+    )
+    starboard_message.set_author(name=f"{message.author.display_name}", icon_url=message.author.avatar_url)
+    starboard_message.add_field(name="Source", value=f"[Jump!]({message.jump_url})")
+    starboard_message.set_footer(text=f"{message.id} • {message.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    # Check for message attachments (images) and add them to the embed.
+    if message.attachments:
+        image_url = message.attachments[0].url  # Assuming one attachment per message
+        starboard_message.set_image(url=image_url)
+
+    return starboard_message
+
+
+def get_special_emote_count(message: discord.Reaction.message) -> dict[str, int]:
+    '''
+    This function iterates through the emoji reactions of a message to get potential matches
+    for special emote cases. If certain emotes are found, they are added to the count. 
+    In this case, we have to use specific emote IDs because if someone adds 2 different hypers
+    emotes to a message, we don't want that to count for 2 reactions of that emote. 
+
+    Parameters: 
+    message: a discord message object. preferably one from the Reaction model, but I think
+    any would work. 
+
+    Returns: dictionary where the keys are strings of the emote's ID, and the values are
+    the number of times that specific emote showed up. 
+    '''
+
+    special_emote_names_and_ids = {'star': 0, 'Hypers': 0, 'EzPepe': 0}
+
+    special_emote_counts = {'star': 0, 'Hypers': 0, 'EzPepe': 0}
+
+    # get the message reaction counts
+    for emoji in message.reactions:
+        emoji_name = emoji.emoji.name if emoji.custom_emoji else emoji.emoji
+        emote_is_special = emoji_name in special_emote_counts.keys()
+        if emote_is_special:
+            special_emote_counts[emoji_name] = emoji.count
+
+    return special_emote_counts
+
+
+@client.event
+async def on_reaction_add(reaction, user):
+    post_to_highlights_threshold = 5
+
+    # define our terms
+    message = reaction.message
+    special_emote_counts = get_special_emote_count(message=message)
+
+    # special conditions
+    over_react_threshold = reaction.count > post_to_highlights_threshold
+
+    
+
+    we_should_post_this_message = all([])
+    
+
+    # Send the embed to the starboard channel.
+    await starboard_channel.send(embed=starboard_message)
 
 
 @client.event

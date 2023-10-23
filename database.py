@@ -77,6 +77,13 @@ class Database:
             " last_message_sent_id integer) ")
         self.connect.commit()
 
+    
+    def build_highlights_table(self):
+        self.cursor.execute(
+            "CREATE TABLE Highlights_Messages (Highlight_message_ID integer, Original_Message_ID integer,"
+            " star_react_count integer, hypers_react_count integer, ezpepe_react_count integer) ")
+        self.connect.commit()
+
     def delete_user_info_from_table(self, name_of_table: str, User_ID: int):
         self.cursor.execute(f"DELETE FROM {name_of_table} WHERE User_ID = {User_ID}")
         self.connect.commit()

@@ -58,8 +58,11 @@ class Focus_Bot_Client(discord.Client):
         # manage and sort out the focus users
         self.loop.create_task(self.focus_mode_maintenance())
 
-        # Start the self care message posting loop
+        # start the self care message posting loop
         self.loop.create_task(self.self_care_reminder_time_loop())
+
+        # start the reminders loop
+        self.loop.create_task(self.remind_all_users())
 
         # clear the void channel with the last bit of this code
         guild = client.get_guild(self.server_id)
@@ -153,6 +156,48 @@ class Focus_Bot_Client(discord.Client):
 
             # sleep until it's time to post again.
             await asyncio.sleep(sleep_time)
+
+    @staticmethod
+    def get_users_who_need_to_be_reminded():
+        current_time = Time_Stuff.get_current_time_in_epochs()
+        database_entries = database_instance.retrieve_values_from_table("Reminders")
+
+        users_that_need_to_be_reminded = []
+
+        for entry in database_entries:
+            reminder_time = entry[2]
+            if current_time - reminder_time > 0:
+                users_that_need_to_be_reminded.append(entry)
+
+        return users_that_need_to_be_reminded
+
+    async def remind_user(self, user_id: int, reminder_message: str):
+        user = self.get_user(id=user_id)
+        await user.send(reminder_message)
+        database_instance.remove_entry_from_table("Reminders", "User_ID", user_id)
+
+    async def remind_all_users(self):
+        await self.wait_until_ready()
+        
+        while True:
+            user_list = self.get_users_who_need_to_be_reminded()
+            async for user in user_list:
+
+                # define the layout of the tuple to more human readable terms
+                user_name = user[0]
+                user_id = user[1]
+                time_of_reminder = user[2]
+                reminder_message = user[3]
+
+                # remind each user one by one
+                await self.remind_user(user_id=user_id, reminder_message=reminder_message)
+                
+                # wait 5 seconds after reminding so we don't get rate limited
+                await asyncio.sleep(5)
+
+            # wait 1 min between checking to see who needs to be reminded.
+            await asyncio.sleep(60)
+
 
     @staticmethod
     async def get_last_message_time_sent_from_user(user_id: int, channel: object):
@@ -659,6 +704,48 @@ async def transcribe_a_yt_video(interaction: discord.Interaction, yt_url: str):
         
     else:
         await interaction.followup.send(content="I'm sorry. We could not get the video's text for some reason... try again later.")
+
+
+@tree.command(name="short_term_reminder", description="Send a custom reminder to yourself up to 1440 minutes from now.")
+async def short_term_reminder(interaction: discord.Interaction, minutes: int, reminder_message: str):
+    await interaction.response.defer()
+    if minutes > 1440 or minutes < 1:
+        await interaction.followup.send("Please try again with minute values between 1 and 1440")
+
+    reminder_time_in_seconds = minutes * 60
+    current_time_in_epochs = Time_Stuff.get_current_time_in_epochs
+
+    time_to_remind_user = current_time_in_epochs + reminder_time_in_seconds
+
+    info_to_log = (interaction.user.name, interaction.user.id, time_to_remind_user, reminder_message)
+
+
+    database_instance.log_to_DB(info_to_log, "Reminders")
+    interaction.followup.send(f"Done! You will be reminded of this in {minutes} minutes!", ephemeral=True)
+
+
+
+@tree.command(name="long_term_reminder", description="Sends you a custom reminder at the time specified. (ALL TIMES IN EST)")
+async def long_term_reminder(interaction: discord.Interaction, date: str, time: str, reminder_message: str):
+    await interaction.response.defer()
+
+    format_check = Time_Stuff.check_user_formatting_for_long_term_remiinders(date=date, time=time)
+
+    if "incorrect" in format_check:
+    
+        if "date" in format_check:
+            await interaction.followup.send("Please enter the date format as dd-mm-yyyy with the dashes.")
+    
+        elif "time" in format_check:
+            await interaction.followup.send("Please enter the time format (EST Time) as hh:mm format")
+    
+    
+    else:
+
+        date_time_in_future_epochs = Time_Stuff.convert_date_time_string_to_strp_object(date=date, time=time).timestamp()
+
+        info_to_log = (interaction.user.name, interaction.user.id, date_time_in_future_epochs, reminder_message)
+        database_instance.log_to_DB(info_to_log, "Reminders")
 
 
 TOKEN = config.discord_bot_credentials["API_Key"]

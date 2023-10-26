@@ -84,9 +84,18 @@ class Database:
             " star_react_count integer, hypers_react_count integer, ezpepe_react_count integer) ")
         self.connect.commit()
 
+    def build_reminders_table(self):
+        self.cursor.execute(
+            "CREATE TABLE Reminders (Username text, User_ID integer, "
+            "Epoch_End_Time_for_Reminder real, Reminder_Message text) ")
+        self.connect.commit()
+
     def delete_user_info_from_table(self, name_of_table: str, User_ID: int):
         self.cursor.execute(f"DELETE FROM {name_of_table} WHERE User_ID = {User_ID}")
         self.connect.commit()
+
+    def remove_entry_from_table(self, name_of_table: str, column_name: str, identifier_value):
+        self.cursor.execute(f"DELETE FROM {name_of_table} WHERE {column_name} = {identifier_value}")
 
     def delete_message_from_table(self, name_of_table: str, Message_ID: int):
         self.cursor.execute(f"DELETE FROM {name_of_table} WHERE message_id = {Message_ID}")
@@ -202,8 +211,11 @@ class Database:
             return False
 
 
-# get the current file path we're operating in, so we don't have to hard code this in.
-# this also requires that the database be in the same working directory as this script.
-CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
-DB_PATH_AND_NAME = os.path.join(CURRENT_DIRECTORY, "Focus_Mode_Info.db")
-database_instance = Database(DB_PATH_AND_NAME)
+# adding this down here so I can manually update the db file then
+# send it back to the raspberry pi all updated and everything
+if __name__ == "__main__":
+    # get the current file path we're operating in, so we don't have to hard code this in.
+    # this also requires that the database be in the same working directory as this script.
+    CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+    DB_PATH_AND_NAME = os.path.join(CURRENT_DIRECTORY, "Focus_Mode_Info.db")
+    database_instance = Database(DB_PATH_AND_NAME)

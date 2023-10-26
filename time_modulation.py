@@ -16,6 +16,10 @@ class Time_Stuff:
     @staticmethod
     def get_current_date() -> str:
         return datetime.now().strftime('%m/%d/%y')
+    
+    @staticmethod
+    def convert_date_time_string_to_strp_object(date: str, time: str):
+        return datetime.strptime(f'{date} {time}', "%d-%m-%Y %H:%M")
 
     @staticmethod
     def how_many_minutes_apart(epoch_time_one: float, epoch_time_two: float) -> list[float]:
@@ -33,8 +37,38 @@ class Time_Stuff:
         days = time_diff // 86400
         return [minutes, hours, days]
 
+
     @staticmethod
-    def time_responses(minutes: int) -> str:
+    def check_user_formatting_for_long_term_remiinders(date: str, time: str) -> str:
+        # formatting user_input strings to remove any extra spaces
+    date = date.strip()
+    time = time.strip()
+
+    redacted_date_str: str = ''
+
+    for character in date:
+        if character == '-':
+            redacted_date_str += character
+        elif character.isdigit():
+            redacted_date_str += 'x'
+    
+    if redacted_date_str != 'xx-xx-xxxx':
+        return "incorrect date format"
+    redacted_time_str = ''
+
+    for character in time:
+        if character == ':':
+            redacted_date_str += character
+        elif character.isdigit():
+            redacted_date_str += 'x'
+
+    if redacted_time_str != 'xx:xx' or len(time) != 5:
+        return "incorrect time format"
+    
+    return "correct format"
+
+    @staticmethod
+    def time_responses_for_focus(minutes: int) -> str:
 
         #  If the user requested to be in focus for longer than a week or less than 0 minutes, call them a moron. lol
         if minutes > 10080 or minutes < 0:

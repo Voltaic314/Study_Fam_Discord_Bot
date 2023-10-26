@@ -75,11 +75,11 @@ class Focus_Bot_Client(discord.Client):
         async for message in auto_delete_channel.history(limit=None, oldest_first=True):
             if not message.pinned:
                 await message.delete()
-                asyncio.sleep(1)
+                asyncio.sleep(5)
 
         for thread in auto_delete_channel.threads:
             await thread.delete()
-            asyncio.sleep(1)
+            asyncio.sleep(5)
                 
         
     async def focus_mode_maintenance(self):
@@ -172,7 +172,7 @@ class Focus_Bot_Client(discord.Client):
         return users_that_need_to_be_reminded
 
     async def remind_user(self, user_id: int, reminder_message: str):
-        user = self.get_user(id=user_id)
+        user = self.get_user(user_id)
         await user.send(reminder_message)
         database_instance.remove_entry_from_table("Reminders", "User_ID", user_id)
 
@@ -181,7 +181,7 @@ class Focus_Bot_Client(discord.Client):
         
         while True:
             user_list = self.get_users_who_need_to_be_reminded()
-            async for user in user_list:
+            for user in user_list:
 
                 # define the layout of the tuple to more human readable terms
                 user_name = user[0]
@@ -604,7 +604,7 @@ async def question_of_the_day(interaction: discord.Interaction):
 # This is a function to list out potential duplicate emotes in the server. 
 @tree.command(name="find_duplicate_emotes", description="Responds with a list of potential duplicate emotes in the server's emote list")
 async def Duplicate_Emote_command(interaction: discord.Interaction):
-    await Interaction.response.defer()
+    await interaction.response.defer()
 
     if not user_is_moderator_or_higher(interaction.user.roles):
         interaction.followup.send("You do not have the required permissions!")
@@ -713,7 +713,7 @@ async def short_term_reminder(interaction: discord.Interaction, minutes: int, re
         await interaction.followup.send("Please try again with minute values between 1 and 1440")
 
     reminder_time_in_seconds = minutes * 60
-    current_time_in_epochs = Time_Stuff.get_current_time_in_epochs
+    current_time_in_epochs = Time_Stuff.get_current_time_in_epochs()
 
     time_to_remind_user = current_time_in_epochs + reminder_time_in_seconds
 
@@ -721,7 +721,7 @@ async def short_term_reminder(interaction: discord.Interaction, minutes: int, re
 
 
     database_instance.log_to_DB(info_to_log, "Reminders")
-    interaction.followup.send(f"Done! You will be reminded of this in {minutes} minutes!", ephemeral=True)
+    await interaction.followup.send(f"Done! You will be reminded of this in {minutes} minutes!", ephemeral=True)
 
 
 
@@ -746,6 +746,8 @@ async def long_term_reminder(interaction: discord.Interaction, date: str, time: 
 
         info_to_log = (interaction.user.name, interaction.user.id, date_time_in_future_epochs, reminder_message)
         database_instance.log_to_DB(info_to_log, "Reminders")
+        await interaction.followup.send("You will be reminded at that date and time with your message!")
+        
 
 
 TOKEN = config.discord_bot_credentials["API_Key"]

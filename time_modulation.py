@@ -41,31 +41,33 @@ class Time_Stuff:
     @staticmethod
     def check_user_formatting_for_long_term_remiinders(date: str, time: str) -> str:
         # formatting user_input strings to remove any extra spaces
-    date = date.strip()
-    time = time.strip()
+        date = date.strip()
+        time = time.strip()
 
-    redacted_date_str: str = ''
+        redacted_date_str: str = ''
 
-    for character in date:
-        if character == '-':
-            redacted_date_str += character
-        elif character.isdigit():
-            redacted_date_str += 'x'
-    
-    if redacted_date_str != 'xx-xx-xxxx':
-        return "incorrect date format"
-    redacted_time_str = ''
+        for character in date:
+            if character == '-':
+                redacted_date_str += character
+            elif character.isdigit():
+                redacted_date_str += 'x'
+        
+        if redacted_date_str != 'xx-xx-xxxx':
+            return "incorrect date format"
+        
 
-    for character in time:
-        if character == ':':
-            redacted_date_str += character
-        elif character.isdigit():
-            redacted_date_str += 'x'
+        redacted_time_str: str = ''
 
-    if redacted_time_str != 'xx:xx' or len(time) != 5:
-        return "incorrect time format"
-    
-    return "correct format"
+        for character in time:
+            if character == ':':
+                redacted_time_str += character
+            elif character.isdigit():
+                redacted_time_str += 'x'
+
+        if redacted_time_str != 'xx:xx' or len(time) != 5:
+            return "incorrect time format"
+        
+        return "correct format"
 
     @staticmethod
     def time_responses_for_focus(minutes: int) -> str:

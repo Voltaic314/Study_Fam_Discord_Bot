@@ -3,8 +3,9 @@ Author: Logan Maupin
 
 This is just a collection of file related stuff for us to use
 '''
-
 import os
+import requests
+
 
 class File_Processing:
 
@@ -62,3 +63,31 @@ class File_Processing:
     def write_string_to_text_file(txt_filename, string_to_write):
         with open(txt_filename, 'a') as txt_file:
             txt_file.write(string_to_write)
+
+    @staticmethod
+    def get_file_size(filename: str) -> int:
+        '''
+        This function returns the file size of a file 
+        given its file name. Returns this in bytes.
+
+        Parameters:
+        filename: str - name of the file you wish to get the size of.
+
+        Returns: int - file size in Bytes
+        '''
+        return os.path.getsize(filename=filename)
+    
+    @staticmethod
+    def check_file_size_of_media_url(url: str, size_limit: int) -> bool:
+        '''
+        This function looks at the file to make sure it is less
+        than the file size limit.
+        
+        Parameters:
+        url: str - string of url to the media file like something.com/something.mp4
+        file_size_byte_limit: int - the file size byte limit you wish to check the file\'s sizes against.
+
+        Returns: True if file's size is smaller than the limit
+        '''
+        return requests.get(url=url).get('content-length') < size_limit
+    

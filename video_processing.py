@@ -5,6 +5,7 @@ from pytube import YouTube
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.formatters import TextFormatter
 
+import config
 from time_modulation import Time_Stuff
 from text_processing import Text_Processing
 from file_processing import File_Processing
@@ -119,4 +120,3 @@ class Video_Processing:
             return response.url == yt_short_url
         except requests.exceptions.RequestException:
             return False
-        

@@ -82,3 +82,59 @@ class Text_Processing:
             return ''
 
         return shortened_url.split('/')[-1]
+
+    @staticmethod
+    def string_contains_reel(input_string: str) -> bool:
+        return 'instagram.com/reel' in input_string
+    
+    @staticmethod
+    def extract_insagram_reel_urls_from_text(input_text: str) -> list[str]:
+        split_up_text = input_text.split(" ")
+        # this returns a list because the user could have posted multiple reeels 
+        # in a single message so we want to account for that. If you just need the string
+        # then just add a [0] at the end of this function call
+        all_reel_links_from_message = []
+        for string in split_up_text:
+            if "instagram.com/reel" in string:
+                all_reel_links_from_message.append(string)
+        return all_reel_links_from_message
+    
+    @staticmethod
+    def extract_text_from_string_minus_urls(input_string: str) -> str:
+        '''
+        This function takes a given input string, removes any instagram reel urls from it, 
+        then returns a copy of the string without any special characters. 
+
+        Parameters:
+        input_str: any str object you wish to extract only the text from.
+        
+        returns: str - without instagram reel urls or special characters. 
+        '''
+        split_string = input_string.strip().split(" ")
+        text_without_urls = [string for string in split_string if not Text_Processing.message_contains_reel(input_string=string)]
+        text_without_special_characters = [Text_Processing.remove_special_characters_from_string(string) for string in text_without_urls]
+        return ' '.join(text_without_special_characters)
+    
+    @staticmethod
+    def extract_reel_id_from_url(reel_url: str) -> str:
+        '''
+        This function takes a reel url like this: 
+        https://www.instagram.com/reel/Cx-UKRypv7Q/?igshid=MzRlODBiNWFlZA==
+        and it extradcts the part between reel/ and /? to get the ID
+
+        in this case being: Cx-UKRypv7Q
+
+        Parameters:
+        reel_url: str of the reel url link to parse through
+
+        Returns: str - Reel ID string from the url
+        '''
+        # make sure the link is a real reel url
+        if not Text_Processing.string_contains_reel(reel_url):
+            return ''
+        
+        string_split_by_slash = reel_url.split("/")
+
+        for index, element in enumerate(string_split_by_slash):
+            if element == 'reel':
+                return string_split_by_slash[index + 1]

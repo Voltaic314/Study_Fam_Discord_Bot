@@ -17,6 +17,7 @@ from time_modulation import Time_Stuff
 from video_processing import Video_Processing
 from image_processing import Image_Processing
 from advice import Advice
+from reel import Reel
 
 
 class Focus_Bot_Client(discord.Client):
@@ -335,8 +336,7 @@ async def on_reaction_add(reaction, user):
     # await starboard_channel.send(embed=starboard_message)
 
 
-@client.event
-async def on_message(message):
+async def dr_k_notification_messages(message: discord.Message) -> None:
     # Defining our variables for our function here
     Dr_K_YT_Videos_Content_Ping_Role_ID = 1164018979166240768
     Dr_K_YT_Shorts_Content_Ping_Role_ID = 1164022532379246613
@@ -368,8 +368,32 @@ async def on_message(message):
         
         elif "live" in message.content:
             notification_message = f"{Dr_K_Twitch_Content_Ping_Role.mention} - Dr. K has started a live stream on Twitch!"
-            await Dr_K_Content_Channel.send(notification_message)       
-        
+            await Dr_K_Content_Channel.send(notification_message)
+
+
+async def post_instagram_reel_media_url(message: discord.Message) -> int or None:
+    '''
+    This function will post all of the instagram reel mp4 files of each respective
+    reel from the reel urls in the given message.
+
+    Parameters:
+    message: a discord.Message object that we can build a thread off of. 
+
+    Returns: int - thread id created from the argument message 
+    with the reels posted in the thread. 
+    '''
+    reel_permalink = Text_Processing.extract_insagram_reel_urls_from_text(input_text=message.content)
+    if not reel_permalink:
+        return None
+    reel = Reel(permalink=reel_permalink)
+    await message.reply(content=reel.media_url)
+
+
+@client.event
+async def on_message(message):
+    await dr_k_notification_messages(message=message)
+    # await post_instagram_reel_media_url(message=message)
+    
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")
 async def FocusMode(interaction: discord.Interaction, minutes: int):
@@ -747,7 +771,6 @@ async def long_term_reminder(interaction: discord.Interaction, date: str, time: 
         info_to_log = (interaction.user.name, interaction.user.id, date_time_in_future_epochs, reminder_message)
         database_instance.log_to_DB(info_to_log, "Reminders")
         await interaction.followup.send("You will be reminded at that date and time with your message!")
-        
 
 
 TOKEN = config.discord_bot_credentials["API_Key"]

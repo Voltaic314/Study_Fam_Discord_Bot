@@ -332,7 +332,7 @@ async def on_reaction_add(reaction, user):
     
 
     # Send the embed to the starboard channel.
-    await starboard_channel.send(embed=starboard_message)
+    # await starboard_channel.send(embed=starboard_message)
 
 
 @client.event

@@ -48,10 +48,13 @@ class Focus_Bot_Client(discord.Client):
         self.Dr_K_Content_Channel_ID = 1078121853266165870
 
         # Passing in our variables to create our objects & object attributes.
-        guild = self.get_guild(client.server_id)
+        self.guild = self.get_guild(self.server_id)
+        guild = self.guild
         self.Dr_K_YT_Videos_Content_Ping_Role = guild.get_role(self.Dr_K_YT_Videos_Content_Ping_Role_ID)
         self.Dr_K_YT_Shorts_Content_Ping_Role = guild.get_role(self.Dr_K_YT_Shorts_Content_Ping_Role_ID)
         self.Dr_K_Twitch_Content_Ping_Role = guild.get_role(self.Dr_K_Twitch_Content_Ping_Role_ID)
+
+        
 
     async def get_activity_object(self) -> object:
         # setup the advice variables and set the daily status to whatever the advice is
@@ -79,7 +82,7 @@ class Focus_Bot_Client(discord.Client):
         self.loop.create_task(self.remind_all_users())
 
         # clear the void channel with the last bit of this code
-        guild = client.get_guild(self.server_id)
+        guild = self.guild
         auto_delete_channel_id = config.discord_bot_credentials["Auto_Delete_Channel_ID"]
         auto_delete_channel = guild.get_channel(auto_delete_channel_id)
 
@@ -100,7 +103,7 @@ class Focus_Bot_Client(discord.Client):
         await self.wait_until_ready()
 
         # Passing in our variables to create our objects & object attributes.
-        guild = client.get_guild(self.server_id)
+        guild = self.guild
         
 
         while True:
@@ -133,7 +136,7 @@ class Focus_Bot_Client(discord.Client):
         await self.wait_until_ready()
 
         # define our variables for later on
-        guild = client.get_guild(self.server_id)
+        guild = self.guild
         self_care_channel = guild.get_channel(self.SELF_CARE_CHANNEL_ID)
         self_care_message_to_send = "Posture & hydration check! I'm watching you! :eyes:"
         number_of_seconds_in_one_hour = 3600
@@ -358,7 +361,7 @@ def dr_k_content_check(message: discord.Message) -> str:
     Dr_K_Content_Channel_ID = 1078121853266165870
 
     # Passing in our variables to create our objects & object attributes.
-    guild = client.get_guild(client.server_id)
+    guild = client.guild # can also use message.guild here too
     Dr_K_YT_Videos_Content_Ping_Role = guild.get_role(Dr_K_YT_Videos_Content_Ping_Role_ID)
     Dr_K_YT_Shorts_Content_Ping_Role = guild.get_role(Dr_K_YT_Shorts_Content_Ping_Role_ID)
     Dr_K_Twitch_Content_Ping_Role = guild.get_role(Dr_K_Twitch_Content_Ping_Role_ID)

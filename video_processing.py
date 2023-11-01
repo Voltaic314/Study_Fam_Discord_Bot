@@ -2,7 +2,7 @@ import os
 import requests
 
 from pytube import YouTube
-from youtube_transcript_api import YouTubeTranscriptApi
+import youtube_transcript_api
 from youtube_transcript_api.formatters import TextFormatter
 
 import config
@@ -59,7 +59,7 @@ class Video_Processing:
 
     @staticmethod
     def get_text_from_video(video_id):
-        transcript = YouTubeTranscriptApi.get_transcript(video_id=video_id)
+        transcript = youtube_transcript_api.YouTubeTranscriptApi.get_transcript(video_id=video_id)
         formatter = TextFormatter()
         txt_formatted = formatter.format_transcript(transcript=transcript)
         
@@ -86,16 +86,22 @@ class Video_Processing:
         return text_file_header
     
     @staticmethod
-    def transcribe_yt_video_main(yt_url: str):
+    def transcribe_yt_video_main(yt_url: str) -> bool:
 
         video_id = Video_Processing.get_video_id(yt_url)
         video_title = Video_Processing.get_video_title(yt_url)
         txt_filename = Text_Processing.format_file_name(video_title=video_title)
         video_title = Text_Processing.format_title_of_vid_for_txt_file(video_title=video_title)
-        video_text = Video_Processing.get_text_from_video(video_id=video_id)
+
+        try: 
+            video_text = Video_Processing.get_text_from_video(video_id=video_id)
+        
+        except youtube_transcript_api._errors.TranscriptsDisabled(video_id=video_id):
+            return False
         header_text = Video_Processing.format_text_file_intro(video_id, video_title, yt_url)
         total_txt_to_write = header_text + video_text
         File_Processing.write_string_to_text_file(txt_filename=txt_filename, string_to_write=total_txt_to_write)
+        return os.path.exists(txt_filename)
 
 
     @staticmethod

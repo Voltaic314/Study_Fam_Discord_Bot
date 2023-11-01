@@ -39,22 +39,7 @@ class Focus_Bot_Client(discord.Client):
         self.server_id = config.discord_bot_credentials["Server_ID_for_Study_Fam"]
         self.user_id = config.discord_bot_credentials["Client_ID"]
         self.Focus_Role_int = config.discord_bot_credentials["Focus_Role_ID"]
-
-        # Defining our variables for our function here
-        self.Dr_K_YT_Videos_Content_Ping_Role_ID = 1164018979166240768
-        self.Dr_K_YT_Shorts_Content_Ping_Role_ID = 1164022532379246613
-        self.Dr_K_Twitch_Content_Ping_Role_ID = 1164022602147319899
-        self.Carl_Bot_User_ID = 235148962103951360
-        self.Dr_K_Content_Channel_ID = 1078121853266165870
-
-        # Passing in our variables to create our objects & object attributes.
         self.guild = self.get_guild(self.server_id)
-        guild = self.guild
-        self.Dr_K_YT_Videos_Content_Ping_Role = guild.get_role(self.Dr_K_YT_Videos_Content_Ping_Role_ID)
-        self.Dr_K_YT_Shorts_Content_Ping_Role = guild.get_role(self.Dr_K_YT_Shorts_Content_Ping_Role_ID)
-        self.Dr_K_Twitch_Content_Ping_Role = guild.get_role(self.Dr_K_Twitch_Content_Ping_Role_ID)
-
-        
 
     async def get_activity_object(self) -> object:
         # setup the advice variables and set the daily status to whatever the advice is
@@ -82,7 +67,7 @@ class Focus_Bot_Client(discord.Client):
         self.loop.create_task(self.remind_all_users())
 
         # clear the void channel with the last bit of this code
-        guild = self.guild
+        guild = self.get_guild(self.server_id)
         auto_delete_channel_id = config.discord_bot_credentials["Auto_Delete_Channel_ID"]
         auto_delete_channel = guild.get_channel(auto_delete_channel_id)
 
@@ -92,18 +77,18 @@ class Focus_Bot_Client(discord.Client):
         async for message in auto_delete_channel.history(limit=None, oldest_first=True):
             if not message.pinned:
                 await message.delete()
-                asyncio.sleep(5)
+                await asyncio.sleep(5)
 
         for thread in auto_delete_channel.threads:
             await thread.delete()
-            asyncio.sleep(5)
+            await asyncio.sleep(5)
                 
         
     async def focus_mode_maintenance(self):
         await self.wait_until_ready()
 
         # Passing in our variables to create our objects & object attributes.
-        guild = self.guild
+        guild = self.get_guild(self.server_id)
         
 
         while True:
@@ -136,7 +121,7 @@ class Focus_Bot_Client(discord.Client):
         await self.wait_until_ready()
 
         # define our variables for later on
-        guild = self.guild
+        guild = self.get_guild(self.server_id)
         self_care_channel = guild.get_channel(self.SELF_CARE_CHANNEL_ID)
         self_care_message_to_send = "Posture & hydration check! I'm watching you! :eyes:"
         number_of_seconds_in_one_hour = 3600
@@ -206,11 +191,13 @@ class Focus_Bot_Client(discord.Client):
                 time_of_reminder = user[2]
                 reminder_message = user[3]
 
+
+                # TODO: turning off reminders for now. This needs to be fixed.
                 # remind each user one by one
-                await self.remind_user(user_id=user_id, reminder_message=reminder_message)
+                # await self.remind_user(user_id=user_id, reminder_message=reminder_message)
                 
                 # wait 5 seconds after reminding so we don't get rate limited
-                await asyncio.sleep(5)
+                # await asyncio.sleep(5)
 
             # wait 1 min between checking to see who needs to be reminded.
             await asyncio.sleep(60)
@@ -230,24 +217,22 @@ class Focus_Bot_Client(discord.Client):
             if message_from_user.author.id == user_id and not message_from_user.pinned:
                 return message_from_user
 
-    async def able_to_post_nofication_message(self, channel):
+    async def able_to_post_nofication_message(self, channel) -> bool:
         bot_id = 1073370831356440680
         time_of_last_message_sent = await self.get_last_message_time_sent_from_user(user_id=bot_id, channel=channel)
         thirty_minutes_in_seconds = 1800
         if time_of_last_message_sent:
-            we_havent_posted_since_thirty_min_ago = Time_Stuff.is_input_time_past_threshold(time_of_last_message_sent,
-                                                                                            thirty_minutes_in_seconds,
-                                                                                            True)
-            return we_havent_posted_since_thirty_min_ago
-
+            return Time_Stuff.is_input_time_past_threshold(time_of_last_message_sent, thirty_minutes_in_seconds, True)
         else:
             return True
 
     @staticmethod
-    async def YT_Video_Transcriptions(message: object) -> None:
+    async def YT_Video_Transcriptions(message: discord.Message) -> bool:
     
         video_link = Text_Processing.extract_video_url(message.content)
-        Video_Processing.transcribe_yt_video_main(video_link)
+        content_was_transcribed = Video_Processing.transcribe_yt_video_main(video_link)
+        if not content_was_transcribed:
+            return False
         video_title = Video_Processing.get_video_title(video_link)
         transcribed_text_filename = Text_Processing.format_file_name(video_title)
         video_title_for_thread_name = Text_Processing.format_title_of_vid_for_txt_file(video_title)
@@ -261,6 +246,7 @@ class Focus_Bot_Client(discord.Client):
             await thread.send(content="Transcription File: ", file=txt_file_to_upload)
 
         os.remove(transcribed_text_filename)
+        return True
 
 
 client = Focus_Bot_Client()
@@ -332,6 +318,7 @@ def get_special_emote_count(message: discord.Reaction.message) -> dict[str, int]
     return special_emote_counts
 
 
+# TODO: Implement the highlights channel reaction handling
 @client.event
 async def on_reaction_add(reaction, user):
     post_to_highlights_threshold = 5
@@ -361,11 +348,14 @@ def dr_k_content_check(message: discord.Message) -> str:
     Dr_K_Content_Channel_ID = 1078121853266165870
 
     # Passing in our variables to create our objects & object attributes.
-    guild = client.guild # can also use message.guild here too
+    guild = message.guild
+    if not guild:
+        return ''
+    
+
     Dr_K_YT_Videos_Content_Ping_Role = guild.get_role(Dr_K_YT_Videos_Content_Ping_Role_ID)
     Dr_K_YT_Shorts_Content_Ping_Role = guild.get_role(Dr_K_YT_Shorts_Content_Ping_Role_ID)
     Dr_K_Twitch_Content_Ping_Role = guild.get_role(Dr_K_Twitch_Content_Ping_Role_ID)
-    
 
     notification_message = ''
 
@@ -396,13 +386,14 @@ async def send_content_pings(message: discord.Message) -> None:
     
     # if the message is dr k related content then do the following...
     if message_to_send:
-        Dr_K_Content_Channel = message.guild.get_channel(client.Dr_K_Content_Channel_ID)
+        Dr_K_Content_Channel_ID = 1078121853266165870
+        Dr_K_Content_Channel = message.guild.get_channel(Dr_K_Content_Channel_ID)
         
         # send the notification message
         await Dr_K_Content_Channel.send(message_to_send)
         
         # do transcriptions if necessary
-        if "youtu.be" in message_to_send:
+        if "youtu.be" in message.content:
             await client.YT_Video_Transcriptions(message=message)
 
 

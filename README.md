@@ -1,7 +1,4 @@
 # Focus_Mode_Discord_Bot
-This is just a repository for a discord bot made for our study fam discord server. The focus mode hides all the channels until you have the role removed.  This bot gives and takes away that role.
-
-
 This python discord bot is a collection of different ever-growing functionalities. 
 
 Current functionalities: 
@@ -20,4 +17,8 @@ Current functionalities:
 
 7. Now the bot can automatically transcribe YT videos and upload the transcription plain text txt files as a thread to the message that got posted announcing the new video from that creator. In this case we have it doing for all of Dr K (healthy gamer) videos when they get uploaded and announced to the server. :) 
 
-8. Now the bot will post a random bit of advice upon startup every day. There is also now a "get_random_advice" slash command you can use to send random advice to the channel you are in. 
+8. The bot can now also extract text from website articles via the </p> HTML tags (web scraping) upon use of the website text extraction slash command.
+
+9. Now the bot will post a random bit of advice upon startup every day. There is also now a "get_random_advice" slash command you can use to send random advice to the channel you are in. 
+
+10. The bot can also differentiate between YT Videos, YT Shorts, and Twitch Livestreams allowing users to tailor their content ping preferences.

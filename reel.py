@@ -27,7 +27,7 @@ class Reel:
 
         reel_id = Text_Processing.extract_reel_id_from_url(reel_url=self.permalink)
 
-        return requests.get(f'https://graph.facebook.com/v17.0/{reel_id}?fields=media_url&access_token={self.API_key}').text
+        return requests.get(f'https://graph.instagram.com/v17.0/{reel_id}?fields=media_url&access_token={self.API_key}').text
     
     @property
     def file_size(self, media_url: str) -> int:

@@ -91,6 +91,7 @@ class Video_Processing:
         video_id = Video_Processing.get_video_id(yt_url)
         video_title = Video_Processing.get_video_title(yt_url)
         txt_filename = Text_Processing.format_file_name(video_title=video_title)
+        txt_filename = File_Processing.get_abs_file_path(txt_filename)
         video_title = Text_Processing.format_title_of_vid_for_txt_file(video_title=video_title)
 
         try: 

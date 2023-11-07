@@ -1,6 +1,7 @@
 import asyncio
 import os
 import random
+import traceback
 
 import discord
 from discord import app_commands
@@ -40,6 +41,8 @@ class Focus_Bot_Client(discord.Client):
         self.user_id = config.discord_bot_credentials["Client_ID"]
         self.Focus_Role_int = config.discord_bot_credentials["Focus_Role_ID"]
         self.guild = self.get_guild(self.server_id)
+        debug_channel_id = 1140698361318625382
+        self.debug_channel = self.get_channel(debug_channel_id)
 
     async def get_activity_object(self) -> object:
         # setup the advice variables and set the daily status to whatever the advice is
@@ -203,6 +206,11 @@ class Focus_Bot_Client(discord.Client):
             await asyncio.sleep(60)
 
 
+    async def handle_exception(self, error):
+        traceback_text = "".join(traceback.format_exception(type(error), error, error.__traceback__))
+        await self.debug_channel.send(f"An error occurred:```\n{traceback_text}```")
+
+
     @staticmethod
     async def get_last_message_time_sent_from_user(user_id: int, channel: object):
         channel_history = channel.history(limit=None, oldest_first=False)
@@ -228,10 +236,22 @@ class Focus_Bot_Client(discord.Client):
 
     @staticmethod
     async def YT_Video_Transcriptions(message: discord.Message) -> bool:
+        '''
+        This function will parse through a message object to get the YT URL, then
+        transcribe that YT video to a txt file, and post that following info to a 
+        discord thread reply to the message that we looked through. 
+
+        Parameters: 
+        message: discord.Message model object. must be an actual message because we 
+        are going to make a thread reply to it. 
+
+        Returns: True if the file got transcribed, sent to the thread, and file got removed locally.
+        '''
 
         video_link = Text_Processing.extract_video_url(message.content)
         content_was_transcribed = Video_Processing.transcribe_yt_video_main(video_link)
         if not content_was_transcribed:
+            print("content was not able to be transcribed")
             return False
         video_title = Video_Processing.get_video_title(video_link)
         transcribed_text_filename = Text_Processing.format_file_name(video_title)
@@ -240,11 +260,14 @@ class Focus_Bot_Client(discord.Client):
         thread = await message.create_thread(name=video_title_for_thread_name, 
                                              auto_archive_duration=10080)
         
+        # send the file to the thread in a message
         with open(transcribed_text_filename, encoding="utf-8") as txt_file:
+            # prepare the file object
             txt_file_to_upload = discord.File(
                 txt_file, filename=transcribed_text_filename)
             await thread.send(content="Transcription File: ", file=txt_file_to_upload)
 
+        # remove the file now that we've sent it
         os.remove(transcribed_text_filename)
         return True
 
@@ -798,6 +821,13 @@ async def long_term_reminder(interaction: discord.Interaction, date: str, time: 
         info_to_log = (interaction.user.name, interaction.user.id, date_time_in_future_epochs, reminder_message)
         database_instance.log_to_DB(info_to_log, "Reminders")
         await interaction.followup.send("You will be reminded at that date and time with your message!")
+
+
+# this is primarily what handles the debugging messages that get sent to the channel
+@client.event
+async def on_error(event, *args, **kwargs):
+    # Handle exceptions that occur in event handlers
+    client.handle_exception(args[0], client)
 
 
 TOKEN = config.discord_bot_credentials["API_Key"]

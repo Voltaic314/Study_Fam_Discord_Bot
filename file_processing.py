@@ -34,6 +34,10 @@ class File_Processing:
         return FILE_PATH_AND_NAME
     
     @staticmethod
+    def get_abs_file_path(filename: str) -> str:
+        return os.path.abspath(filename)
+    
+    @staticmethod
     def remove_file(filename: str, abs_path_used: bool) -> bool:
         '''
         This function removes the file that was saved after 

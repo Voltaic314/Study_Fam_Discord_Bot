@@ -162,6 +162,39 @@ class Focus_Bot_Client(discord.Client):
             # sleep until it's time to post again.
             await asyncio.sleep(sleep_time)
 
+
+    async def yearly_progress_bar(self):
+        await self.wait_until_ready()
+
+        # define our variables for later on
+        guild = self.get_guild(self.server_id)
+        self_care_channel = guild.get_channel(self.SELF_CARE_CHANNEL_ID)
+
+        last_message_sent_time = await self.get_last_message_time_sent_from_user(user_id=self.user_id,
+                                                                                    channel=self_care_channel)
+
+        if last_message_sent_time:
+            last_message_is_older_than_a_day = Time_Stuff.is_input_time_past_threshold(
+                last_message_sent_time, 10080, True)
+
+            # This is so in case we have to reboot the bot it's not just spamming the channel every single time.
+            if last_message_is_older_than_a_day:
+
+                # delete the previous message before we post again
+                last_message = await self.get_last_message_from_user(self.user_id, channel=self_care_channel)
+                await last_message.delete()
+
+        progress_bar_img_filename = "progress_bar.png"
+
+        # send the file to the thread in a message
+        with open(progress_bar_img_filename, mode='rb') as img_file:
+            # prepare the file object
+            img_file_to_upload = discord.File(
+                img_file, filename=progress_bar_img_filename)
+            await self_care_channel.send(content="Yearly progress as of today: ", file=img_file_to_upload)
+
+
+
     @staticmethod
     def get_users_who_need_to_be_reminded():
         current_time = Time_Stuff.get_current_time_in_epochs()

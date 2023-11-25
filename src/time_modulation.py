@@ -121,6 +121,9 @@ class Time_Stuff:
         :returns: True if the time is over 24 hours old, false otherwise.
         """
         current_time = time.time()
+        if not input_time_in_epochs:
+            return False
+        
         if discord_time:
             utc_offset_for_dst = 3600 * 5
             utc_offset_for_non_dst = 3600 * 6

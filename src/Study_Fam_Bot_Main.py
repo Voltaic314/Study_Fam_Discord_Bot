@@ -19,7 +19,7 @@ from video_processing import Video_Processing
 from image_processing import Image_Processing
 from advice import Advice
 from reel import Reel
-from content_notificaiton import ContentNotification
+from content_notification import ContentNotification
 
 
 class Focus_Bot_Client(discord.Client):

@@ -19,6 +19,7 @@ from video_processing import Video_Processing
 from image_processing import Image_Processing
 from advice import Advice
 from reel import Reel
+from content_notificaiton import ContentNotification
 
 
 class Focus_Bot_Client(discord.Client):
@@ -299,6 +300,8 @@ class Focus_Bot_Client(discord.Client):
             txt_file_to_upload = discord.File(
                 txt_file, filename=transcribed_text_filename)
             await thread.send(content="Transcription File: ", file=txt_file_to_upload)
+            message_to_send = get_content_ping_message(message=message)
+            await thread.send(message_to_send)
 
         # remove the file now that we've sent it
         os.remove(transcribed_text_filename)
@@ -395,62 +398,58 @@ async def on_reaction_add(reaction, user):
     # await starboard_channel.send(embed=starboard_message)
 
 
-def dr_k_content_check(message: discord.Message) -> str:
+def get_content_ping_message(message: discord.Message) -> str:
+
+    carl_alert_msg = ContentNotification(message.content, message.author.id, message.channel.id)
+    
+    # if the message wasn't actually a real alert, then just return an empty string.
+    if not carl_alert_msg.is_content_alert:
+        return ''
+    
     # Defining our variables for our function here
     Dr_K_YT_Videos_Content_Ping_Role_ID = 1164018979166240768
     Dr_K_YT_Shorts_Content_Ping_Role_ID = 1164022532379246613
     Dr_K_Twitch_Content_Ping_Role_ID = 1164022602147319899
-    Carl_Bot_User_ID = 235148962103951360
-    Dr_K_Content_Channel_ID = 1078121853266165870
 
     # Passing in our variables to create our objects & object attributes.
     guild = message.guild
-    if not guild:
-        return ''
     
-
+    # build our role objects to be used in our f-strings below
     Dr_K_YT_Videos_Content_Ping_Role = guild.get_role(Dr_K_YT_Videos_Content_Ping_Role_ID)
     Dr_K_YT_Shorts_Content_Ping_Role = guild.get_role(Dr_K_YT_Shorts_Content_Ping_Role_ID)
     Dr_K_Twitch_Content_Ping_Role = guild.get_role(Dr_K_Twitch_Content_Ping_Role_ID)
-
-    notification_message = ''
-
-    if message.channel.id == Dr_K_Content_Channel_ID and message.author.id == Carl_Bot_User_ID:
         
-        # check if it's a YT video
-        if "youtu.be/" in message.content:
+    if carl_alert_msg.is_yt_video:
 
-            # now check to see if it's a normal video or a short
-            video_url = Text_Processing.extract_video_url(message_contents=message.content)
-            video_id = Text_Processing.extract_vid_id_from_shortened_yt_url(shortened_url=video_url)
-            video_is_a_short = Video_Processing.is_yt_video_a_short(video_id=video_id)
-            if video_is_a_short:
-                notification_message += f"{Dr_K_YT_Shorts_Content_Ping_Role.mention} - Dr. K has uploaded a short!"
-            
-            else:
-                notification_message += f"{Dr_K_YT_Videos_Content_Ping_Role.mention} - Dr. K has uploaded a YouTube video!"
+        # now check to see if it's a normal video or a short
+        if carl_alert_msg.video.is_short:
+            return f"{Dr_K_YT_Shorts_Content_Ping_Role.mention} - Dr. K has uploaded a YouTube short!"
         
-        # check if it's a livestream
-        elif "live" in message.content:
-            notification_message += f"{Dr_K_Twitch_Content_Ping_Role.mention} - Dr. K has started a live stream on Twitch!"
-            
-    return notification_message
+        else:
+            return f"{Dr_K_YT_Videos_Content_Ping_Role.mention} - Dr. K has uploaded a YouTube video!"
+    
+    elif carl_alert_msg.is_twitch_stream:
+        return f"{Dr_K_Twitch_Content_Ping_Role.mention} - Dr. K has started a live stream on Twitch!"
 
 
 async def send_content_pings(message: discord.Message) -> None:
-    message_to_send = dr_k_content_check(message=message)
+    message_to_send = get_content_ping_message(message=message)
     
-    # if the message is dr k related content then do the following...
+    # if the message is dr k related content
     if message_to_send:
         Dr_K_Content_Channel_ID = 1078121853266165870
         Dr_K_Content_Channel = message.guild.get_channel(Dr_K_Content_Channel_ID)
         
-        # send the notification message
-        await Dr_K_Content_Channel.send(message_to_send)
-        
+        message_was_yt_content = "YouTube" in message_to_send
+
         # do transcriptions if necessary
-        if "youtu.be" in message.content:
+        # note that if the bot does this route, it will send the ping in the thread instead.
+        if message_was_yt_content:
             await client.YT_Video_Transcriptions(message=message)
+
+        else:
+            # send the notification message
+            await Dr_K_Content_Channel.send(message_to_send)
 
 
 
@@ -474,7 +473,10 @@ async def post_instagram_reel_media_url(message: discord.Message) -> int or None
 
 @client.event
 async def on_message(message):
-    await send_content_pings(message=message)
+
+    # Make sure the message came from a server and not a DM.
+    if message.guild:
+        await send_content_pings(message=message)
     # await post_instagram_reel_media_url(message=message)
     
 

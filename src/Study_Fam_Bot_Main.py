@@ -15,7 +15,7 @@ from file_processing import File_Processing
 from database import Database
 from text_processing import Text_Processing
 from time_modulation import Time_Stuff
-from video_processing import Video_Processing
+from video_processing import Video
 from image_processing import Image_Processing
 from advice import Advice
 from reel import Reel
@@ -281,30 +281,30 @@ class Focus_Bot_Client(discord.Client):
 
         Returns: True if the file got transcribed, sent to the thread, and file got removed locally.
         '''
-
         video_link = Text_Processing.extract_video_url(message.content)
-        content_was_transcribed = Video_Processing.transcribe_yt_video_main(video_link)
+        video = Video(url=video_link)
+
+        content_was_transcribed = video.transcribe_yt_video()
         if not content_was_transcribed:
             print("content was not able to be transcribed")
             return False
-        video_title = Video_Processing.get_video_title(video_link)
-        transcribed_text_filename = Text_Processing.format_file_name(video_title)
-        video_title_for_thread_name = Text_Processing.format_title_of_vid_for_txt_file(video_title)
+        transcript_filename = Text_Processing.format_file_name(video.title)
+        thread_name = Text_Processing.format_title_of_vid_for_txt_file(video.title)
 
-        thread = await message.create_thread(name=video_title_for_thread_name, 
+        thread = await message.create_thread(name=thread_name, 
                                              auto_archive_duration=10080)
         
         # send the file to the thread in a message
-        with open(transcribed_text_filename, encoding="utf-8") as txt_file:
+        with open(transcript_filename, encoding="utf-8") as txt_file:
             # prepare the file object
             txt_file_to_upload = discord.File(
-                txt_file, filename=transcribed_text_filename)
+                txt_file, filename=transcript_filename)
             await thread.send(content="Transcription File: ", file=txt_file_to_upload)
             message_to_send = get_content_ping_message(message=message)
             await thread.send(message_to_send)
 
         # remove the file now that we've sent it
-        os.remove(transcribed_text_filename)
+        os.remove(transcript_filename)
         return True
 
 
@@ -319,16 +319,17 @@ database_instance = Database(database_file_name_and_path)
 '''
 A relic of the past. A proof of concept. A funny idea nonetheless,
 but it would not be a permanent fixture. 
-'''
-# @client.event
-# async def on_ready():
-#     # generate a random person's image for our daily profile picture
-#     img_was_saved = Image_Processing.get_random_image()
-#     image_filename = 'Profile_Picture.jpg'
 
-#     # set the profile picture to that image
-#     with open(image_filename, 'rb') as image:
-#         await client.user.edit(avatar=image.read())
+@client.event
+async def on_ready():
+    # generate a random person's image for our daily profile picture
+    img_was_saved = Image_Processing.get_random_image()
+    image_filename = 'Profile_Picture.jpg'
+
+    # set the profile picture to that image
+    with open(image_filename, 'rb') as image:
+        await client.user.edit(avatar=image.read())
+'''
 
 def generate_starboard_embed(message, star_count):
     starboard_message = discord.Embed(

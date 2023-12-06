@@ -43,7 +43,7 @@ def get_video_info(video_url) -> tuple[str, str]:
         '''
         youtube = YouTube(video_url)
         title_of_video = youtube.title
-        video_id = youtube.video_id
+        video_id = youtube.id
         return title_of_video, video_id
 
 

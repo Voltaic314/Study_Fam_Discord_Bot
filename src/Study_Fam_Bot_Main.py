@@ -195,7 +195,8 @@ class Focus_Bot_Client(discord.Client):
             await self_care_channel.send(content="Yearly progress as of today: ", file=img_file_to_upload)
 
 
-
+    ## FIXME: something about reminders doesn't work. I think it's not clearing the people from the database properly.
+    ## Not sure what's going on there. This will need to be fixed soon. One day... lol
     @staticmethod
     def get_users_who_need_to_be_reminded():
         current_time = Time_Stuff.get_current_time_in_epochs()
@@ -288,6 +289,7 @@ class Focus_Bot_Client(discord.Client):
         if not content_was_transcribed:
             print("content was not able to be transcribed")
             return False
+
         transcript_filename = Text_Processing.format_file_name(video.title)
         thread_name = Text_Processing.format_title_of_vid_for_txt_file(video.title)
 
@@ -863,7 +865,7 @@ async def long_term_reminder(interaction: discord.Interaction, date: str, time: 
 @client.event
 async def on_error(event, *args, **kwargs):
     # Handle exceptions that occur in event handlers
-    client.handle_exception(args[0], client)
+    await client.handle_exception(args[0])
 
 
 TOKEN = config.discord_bot_credentials["API_Key"]

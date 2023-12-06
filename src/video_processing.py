@@ -14,7 +14,11 @@ from file_processing import File_Processing
 class Video(YouTube):
 
     def __init__(self, url) -> None:
-        super().__init__(self, url=url)
+        # doing some awful inheritance here because I'm an idiot I guess lmao
+        self.youtube = YouTube(url)
+        self.title = self.youtube.title
+        self.url = url
+        self.id = Text_Processing.extract_vid_id_from_shortened_yt_url(self.url)
 
     @property
     def text_file_header(self) -> str:
@@ -30,9 +34,9 @@ class Video(YouTube):
         """
         text_file_header = ""
         text_file_header += f"Date: {Time_Stuff.get_current_date()}\n"
-        text_file_header += f"Video ID: {self.video_id}\n"
-        text_file_header += f"Video Title: {self.video_title}\n"
-        text_file_header += f"Video URL: {self.video_url}\n\n\n"
+        text_file_header += f"Video ID: {self.id}\n"
+        text_file_header += f"Video Title: {self.title}\n"
+        text_file_header += f"Video URL: {self.url}\n\n\n"
 
         return text_file_header
 
@@ -74,7 +78,7 @@ class Video(YouTube):
         Returns: True if it is a short and false otherwise.
         '''
 
-        yt_short_url = f'https://www.youtube.com/shorts/{self.video_id}'
+        yt_short_url = f'https://www.youtube.com/shorts/{self.id}'
 
         try:
             response = requests.get(yt_short_url)
@@ -85,9 +89,9 @@ class Video(YouTube):
     @property
     def caption_text(self):
         try:
-            transcript = youtube_transcript_api.YouTubeTranscriptApi.get_transcript(video_id=self.video_id)
+            transcript = youtube_transcript_api.YouTubeTranscriptApi.get_transcript(video_id=self.id)
         
-        except youtube_transcript_api._errors.TranscriptsDisabled(video_id=self.video_id):
+        except youtube_transcript_api._errors.TranscriptsDisabled(video_id=self.id):
             return ''
         
         formatter = TextFormatter()
@@ -97,9 +101,9 @@ class Video(YouTube):
 
     def transcribe_yt_video(self) -> bool:
 
-        txt_filename = Text_Processing.format_file_name(video_title=video_title)
+        txt_filename = Text_Processing.format_file_name(video_title=self.title)
         txt_filename = File_Processing.get_abs_file_path(txt_filename)
-        video_title = Text_Processing.format_title_of_vid_for_txt_file(video_title=video_title)
+        video_title = Text_Processing.format_title_of_vid_for_txt_file(video_title=self.title)
         if not self.caption_text:
             return False
         total_txt_to_write = self.text_file_header + self.caption_text

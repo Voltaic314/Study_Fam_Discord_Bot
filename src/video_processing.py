@@ -2,6 +2,7 @@ import os
 import requests
 
 from pytube import YouTube
+import pytube.exceptions
 import youtube_transcript_api
 from youtube_transcript_api.formatters import TextFormatter
 
@@ -14,11 +15,9 @@ from file_processing import File_Processing
 class Video(YouTube):
 
     def __init__(self, url) -> None:
-        # doing some awful inheritance here because I'm an idiot I guess lmao
-        self.youtube = YouTube(url)
-        self.title = self.youtube.title
-        self.url = url
+        super().__init__(url)
         self.id = Text_Processing.extract_vid_id_from_shortened_yt_url(self.url)
+
 
     @property
     def text_file_header(self) -> str:
@@ -61,6 +60,21 @@ class Video(YouTube):
         Returns: True if the file exists, False otherwise.
         """
         return os.path.exists(self.filename)
+    
+    @property
+    def is_private(self) -> bool:
+        '''
+        This method returns True if the video is a private video or not.
+        
+        Returns: True if video is private, else False.
+        '''
+
+        try:
+            self.streams
+            return False
+        
+        except pytube.exceptions.VideoPrivate:
+            return True
     
     @property
     def is_short(self) -> bool:

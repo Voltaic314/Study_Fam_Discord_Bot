@@ -240,11 +240,9 @@ class Focus_Bot_Client(discord.Client):
             # wait 1 min between checking to see who needs to be reminded.
             await asyncio.sleep(60)
 
-
     async def handle_exception(self, error):
-        traceback_text = "".join(traceback.format_exception(type(error), error, error.__traceback__))
+        traceback_text = " ".join(traceback.format_exception(type(error), error))
         await self.debug_channel.send(f"An error occurred:```\n{traceback_text}```")
-
 
     @staticmethod
     async def get_last_message_time_sent_from_user(user_id: int, channel: object):

@@ -241,7 +241,7 @@ class Focus_Bot_Client(discord.Client):
             await asyncio.sleep(60)
 
     async def handle_exception(self, error):
-        traceback_text = " ".join(traceback.format_exception(type(error), error))
+        traceback_text = " ".join(traceback.format_exception(type(error), error, error.__traceback__))
         await self.debug_channel.send(f"An error occurred:```\n{traceback_text}```")
 
     @staticmethod
@@ -456,7 +456,6 @@ async def send_content_pings(message: discord.Message) -> None:
         else:
             # send the notification message
             await Dr_K_Content_Channel.send(message_to_send)
-
 
 
 async def post_instagram_reel_media_url(message: discord.Message) -> int or None:
@@ -718,7 +717,7 @@ async def question_of_the_day(interaction: discord.Interaction):
 
 # This is a function to list out potential duplicate emotes in the server. 
 @tree.command(name="find_duplicate_emotes", description="Responds with a list of potential duplicate emotes in the server's emote list")
-async def Duplicate_Emote_command(interaction: discord.Interaction):
+async def Duplicate_Emote_Command(interaction: discord.Interaction):
     await interaction.response.defer()
 
     if not user_is_moderator_or_higher(interaction.user.roles):
@@ -803,7 +802,7 @@ async def extract_text_from_url(interaction: discord.Interaction, url: str):
     
     else:
         await interaction.followup.send(content="I'm sorry. We could not get the websíte's text for some reason... try again later.")
-
+        interaction.response.is_done()
 
 @tree.command(name="transcribe_a_yt_video", description="transcribes a YT video into a txt file then uploads that txt file to the channel.")
 async def transcribe_a_yt_video(interaction: discord.Interaction, yt_url: str):
@@ -819,7 +818,7 @@ async def transcribe_a_yt_video(interaction: discord.Interaction, yt_url: str):
         
     else:
         await interaction.followup.send(content="I'm sorry. We could not get the video's text for some reason... try again later.")
-
+        interaction.response.is_done()
 
 @tree.command(name="short_term_reminder", description="Send a custom reminder to yourself up to 1440 minutes from now.")
 async def short_term_reminder(interaction: discord.Interaction, minutes: int, reminder_message: str):
@@ -837,7 +836,7 @@ async def short_term_reminder(interaction: discord.Interaction, minutes: int, re
 
     database_instance.log_to_DB(info_to_log, "Reminders")
     await interaction.followup.send(f"Done! You will be reminded of this in {minutes} minutes!", ephemeral=True)
-
+    interaction.response.is_done()
 
 
 @tree.command(name="long_term_reminder", description="Sends you a custom reminder at the time specified. (ALL TIMES IN EST)")
@@ -854,7 +853,6 @@ async def long_term_reminder(interaction: discord.Interaction, date: str, time: 
         elif "time" in format_check:
             await interaction.followup.send("Please enter the time format (EST Time) as hh:mm format")
     
-    
     else:
 
         date_time_in_future_epochs = Time_Stuff.convert_date_time_string_to_strp_object(date=date, time=time).timestamp()
@@ -862,7 +860,7 @@ async def long_term_reminder(interaction: discord.Interaction, date: str, time: 
         info_to_log = (interaction.user.name, interaction.user.id, date_time_in_future_epochs, reminder_message)
         database_instance.log_to_DB(info_to_log, "Reminders")
         await interaction.followup.send("You will be reminded at that date and time with your message!")
-
+        interaction.response.is_done()
 
 # this is primarily what handles the debugging messages that get sent to the channel
 @client.event

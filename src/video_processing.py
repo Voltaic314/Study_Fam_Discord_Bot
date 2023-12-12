@@ -16,8 +16,8 @@ class Video(YouTube):
 
     def __init__(self, url) -> None:
         super().__init__(url)
+        self.url = url
         self.id = Text_Processing.extract_vid_id_from_shortened_yt_url(self.url)
-
 
     @property
     def text_file_header(self) -> str:

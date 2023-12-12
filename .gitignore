@@ -18,3 +18,4 @@ __pycache__/time_modulation.cpython-39.pyc
 *.xml
 TheAddictionYouDidntKnowYouHad.mp3
 .idea/misc.xml
+src/nohup.out

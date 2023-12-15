@@ -476,6 +476,85 @@ async def post_instagram_reel_media_url(message: discord.Message) -> int or None
     await message.reply(content=reel.media_url)
 
 
+def attachment_is_img(attachment: discord.Attachment):
+    print(attachment.content_type)
+    return attachment.content_type == "image"
+
+
+def attachment_img_count(attachments: discord.Attachment) -> int:
+    '''
+    This function determines how many images are present in a list of attachments
+    in a discord message. If the count is 0, then there were no images posted.
+    
+    Returns: int - number of images present in the discord message's attachment list.
+    '''
+    img_count = 0
+    for attachment in attachments:
+        if attachment_is_img(attachment):
+            img_count += 1
+    return img_count
+
+
+async def extract_text_from_images(attachments: discord.Attachment) -> dict[str, str] or None:
+    
+    # If there were no imgs in the message attachments, don't bother extracting text.
+    if not attachment_img_count(attachments=attachments):
+        return None
+
+    image_texts = {}
+
+    attachment_counter = 1
+    for attachment in attachments:
+        if attachment_is_img(attachment):
+
+            # save the img, ocr the image, delete the image, save its text to the dictionary
+            await attachment.save(fp=attachment.filename)
+            img_text = ' '.join(Image_Processing.get_image_text(attachment.filename))
+            os.remove(os.path.abspath(attachment.filename))
+            image_texts[f'attachment {attachment_counter}'] = img_text
+        
+        # regardless of whether the attachment was an image, increase the counter so it makes sense
+        # what attachment we are referring to. 
+        attachment_counter += 1
+
+    return image_texts
+
+
+def img_text_does_not_exist(image_text: dict[str, str]):
+    '''
+    This function checks to make sure that the values of image_text dictionary
+    aren't just empty strings
+    '''
+    return not any(bool(string) for string in image_text.values())
+
+
+async def create_threads_for_img_attachments(message: discord.Message) -> discord.Thread:
+    
+    image_texts = await extract_text_from_images(attachments=message.attachments)
+    
+    # don't make a thread if the images don't contain extractable text.
+    if not img_text_does_not_exist(image_text=image_texts):
+        thread = await message.create_thread(name='image text')
+        return thread
+
+async def post_img_text_to_threads(thread: discord.Thread, image_text: dict[str, str]):
+    for name, text in image_text.items():
+        thread.send(content=f"{name} text: {text}\n\n")
+
+
+async def extract_text_from_incoming_messages_main(message: discord.Message) -> None:
+    
+    if not message.attachments:
+        return None
+    
+    if not attachment_img_count(message.attachments):
+        return None
+
+    thread = await create_threads_for_img_attachments(message=message)
+    image_texts = await extract_text_from_images(message.attachments)
+    await post_img_text_to_threads(thread=thread, image_text=image_texts)
+
+    
 @client.event
 async def on_message(message):
 
@@ -484,6 +563,10 @@ async def on_message(message):
         await send_content_pings(message=message)
     # await post_instagram_reel_media_url(message=message)
     
+    # if the user uploaded an image in their message, extract the text and post it in a thread reply.
+    if message.attachments:
+        if attachment_img_count(message.attachments):
+            await extract_text_from_incoming_messages_main(message=message)
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")
 async def FocusMode(interaction: discord.Interaction, minutes: int):

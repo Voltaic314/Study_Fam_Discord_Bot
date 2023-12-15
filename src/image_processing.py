@@ -8,6 +8,7 @@ import requests
 from bs4 import BeautifulSoup
 import config
 import imagehash
+import pytesseract
 from PIL import Image
 from io import BytesIO
 
@@ -66,3 +67,7 @@ class Image_Processing:
     @staticmethod
     def get_img_filesize(image_filename: str) -> int:
         return os.stat(image_filename)
+    
+    @staticmethod
+    def get_image_text(filename) -> str:
+        return pytesseract.image_to_string(Image.open(filename))

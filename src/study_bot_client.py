@@ -10,11 +10,10 @@ from text_processing import Text_Processing
 from time_modulation import Time_Stuff
 from video_processing import Video
 from advice import Advice
-from reel import Reel
-from discord_utility_functions import * # I don't like doing this but I'm lazy
-from bot_slash_commands import *
+from discord_utility_functions import get_content_ping_message, attachment_img_count, extract_text_from_incoming_messages_main
 from database import Database
 from file_processing import File_Processing
+
 
 
 class Study_Bot_Client(discord.Client):
@@ -262,6 +261,26 @@ class Study_Bot_Client(discord.Client):
             return Time_Stuff.is_input_time_past_threshold(time_of_last_message_sent, thirty_minutes_in_seconds, True)
         else:
             return True
+        
+
+    async def send_content_pings(self, message: discord.Message) -> None:
+        message_to_send = get_content_ping_message(message=message)
+        
+        # if the message is dr k related content
+        if message_to_send:
+            Dr_K_Content_Channel_ID = 1078121853266165870
+            Dr_K_Content_Channel = message.guild.get_channel(Dr_K_Content_Channel_ID)
+            
+            message_was_yt_content = "YouTube" in message_to_send
+
+            # do transcriptions if necessary
+            # note that if the bot does this route, it will send the ping in the thread instead.
+            if message_was_yt_content:
+                await self.YT_Video_Transcriptions(message=message)
+
+            else:
+                # send the notification message
+                await Dr_K_Content_Channel.send(message_to_send)
 
     @staticmethod
     async def YT_Video_Transcriptions(message: discord.Message) -> bool:
@@ -306,6 +325,24 @@ class Study_Bot_Client(discord.Client):
 
 client = Study_Bot_Client()
 tree = discord.app_commands.CommandTree(client)
+
+
+@client.event
+async def on_message(message):
+
+    print("message was posted to server.")
+
+    await client.send_content_pings(message=message)
+    
+    print("Message may or may not have been a content posting.")
+
+    # if the user uploaded an image in their message, extract the text and post it in a thread reply.
+    print("Now checking if message has an image...")
+    if message.attachments:
+        print("Message contains attachments")
+        if attachment_img_count(message.attachments):
+            print("Yep msg attachments contain images")
+            await extract_text_from_incoming_messages_main(message=message)
 
 
 if __name__ == "__main__":

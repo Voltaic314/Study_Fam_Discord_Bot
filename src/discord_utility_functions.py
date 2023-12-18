@@ -12,24 +12,88 @@ import config
 import discord
 
 # import specific files for extra utilities
-import find_duplicate_emojis
 from write_website_text_from_url import write_text_to_txt_file_from_url
 from moderator_check import user_is_moderator_or_higher
 from transcribe_a_video_and_save_to_txt import transcribe_video
 
 # import class objects from other OOP scripts we made
-from study_bot_client import Study_Bot_Client # this is the actual discord bot
 from reel import Reel
 from content_notification import ContentNotification
 from text_processing import Text_Processing
 from image_processing import Image_Processing
 from time_modulation import Time_Stuff
 from database import Database
+from file_processing import File_Processing
 
 
-# set up our client and tree to use in the global namespace for now
-client = Study_Bot_Client()
-tree = discord.app_commands.CommandTree(client)
+
+'''
+A relic of the past. A proof of concept. A funny idea nonetheless,
+but it would not be a permanent fixture. 
+
+@client.event
+async def on_ready():
+    # generate a random person's image for our daily profile picture
+    img_was_saved = Image_Processing.get_random_image()
+    image_filename = 'Profile_Picture.jpg'
+
+    # set the profile picture to that image
+    with open(image_filename, 'rb') as image:
+        await client.user.edit(avatar=image.read())
+'''
+
+
+def generate_hash_dict(emote_list: list[object]) -> dict[object, hash]:
+    hash_list = {}
+
+    for emote in emote_list:
+        emote_filename = f'{emote.name} - {emote.id}.jpg'
+        hash_list[emote] = Image_Processing.difference_image_hashing(emote_filename)
+        # remove each image after we hash them to save on resources
+        File_Processing.remove_file(emote_filename, False)
+
+    return hash_list
+
+def find_duplicates_through_hashes(emote_hash_dict: dict[object, hash]) -> dict[object: object]:
+    '''
+    This function will go through the list of emote objects and compare their hashes
+    to find duplicates. For more information on this go here: https://pypi.org/project/ImageHash/
+    It will then return a dictionary objects with the emote objects as keys and a list
+    of all potential duplicates as the values for that emote.
+
+    Parameters: list of emote objects, must contain their hash attribute.
+
+    Returns: Dictionary object - keys are the original emote, list of other similar emote as values
+    '''
+    emotes_and_duplicates = {}
+
+    emote_list = list(emote_hash_dict.keys())
+
+    # Check each emote's hash
+    for i in range(len(emote_list)):
+
+        first_emote = emote_list[i]
+        first_hash = emote_hash_dict[first_emote]
+
+        # make sure the emote actually has a hash to compare the others to... lol
+        if not first_hash:
+            continue
+
+        for j in range(i+1, len(emote_hash_dict.keys())):
+
+            comparison_emote = emote_list[j]
+            comparison_hash = emote_hash_dict[comparison_emote]
+
+            hashes_are_identical = first_hash == comparison_hash
+            # print(f'the hamming distance of these 2 emotes is: {hamming_distance}')
+            if  hashes_are_identical:
+                if first_emote in emotes_and_duplicates.keys():
+                    emotes_and_duplicates[first_emote].append(comparison_emote)
+                
+                else:
+                    emotes_and_duplicates[first_emote] = [comparison_emote]
+
+    return emotes_and_duplicates
 
 
 def get_content_ping_message(message: discord.Message) -> str:
@@ -71,26 +135,6 @@ def get_content_ping_message(message: discord.Message) -> str:
         return f"{Dr_K_Twitch_Content_Ping_Role.mention} - Dr. K has started a live stream on Twitch!"
 
 
-async def send_content_pings(message: discord.Message) -> None:
-    message_to_send = get_content_ping_message(message=message)
-    
-    # if the message is dr k related content
-    if message_to_send:
-        Dr_K_Content_Channel_ID = 1078121853266165870
-        Dr_K_Content_Channel = message.guild.get_channel(Dr_K_Content_Channel_ID)
-        
-        message_was_yt_content = "YouTube" in message_to_send
-
-        # do transcriptions if necessary
-        # note that if the bot does this route, it will send the ping in the thread instead.
-        if message_was_yt_content:
-            await client.YT_Video_Transcriptions(message=message)
-
-        else:
-            # send the notification message
-            await Dr_K_Content_Channel.send(message_to_send)
-
-
 async def post_instagram_reel_media_url(message: discord.Message) -> int or None:
     '''
     This function will post all of the instagram reel mp4 files of each respective
@@ -110,8 +154,10 @@ async def post_instagram_reel_media_url(message: discord.Message) -> int or None
 
 
 def attachment_is_img(attachment: discord.Attachment):
+    attachment.content_type = attachment.content_type.lower()
     print(attachment.content_type)
-    return attachment.content_type == "image"
+    
+    return "image" in attachment.content_type and not "gif" in attachment.content_type
 
 
 def attachment_img_count(attachments: discord.Attachment) -> int:
@@ -176,13 +222,13 @@ async def post_img_text_to_threads(thread: discord.Thread, image_text: dict[str,
 
 
 async def extract_text_from_incoming_messages_main(message: discord.Message) -> None:
-    
-    if not message.attachments:
-        return None
-    
-    if not attachment_img_count(message.attachments):
-        return None
 
+    print("Now trying to create thread...")
     thread = await create_threads_for_img_attachments(message=message)
+    
+    print("Now extracting image text")
     image_texts = await extract_text_from_images(message.attachments)
+    
+    print("Now posting that text to the thread we created...")
     await post_img_text_to_threads(thread=thread, image_text=image_texts)
+    print("all done!")

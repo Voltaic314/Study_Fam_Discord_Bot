@@ -20,21 +20,6 @@ database_file_name_and_path = File_Processing.return_file_name_with_current_dire
 database_instance = Database(database_file_name_and_path)
 
 
-'''
-A relic of the past. A proof of concept. A funny idea nonetheless,
-but it would not be a permanent fixture. 
-
-@client.event
-async def on_ready():
-    # generate a random person's image for our daily profile picture
-    img_was_saved = Image_Processing.get_random_image()
-    image_filename = 'Profile_Picture.jpg'
-
-    # set the profile picture to that image
-    with open(image_filename, 'rb') as image:
-        await client.user.edit(avatar=image.read())
-'''
-
 def generate_starboard_embed(message, star_count):
     starboard_message = discord.Embed(
         title="Starred Message",
@@ -83,36 +68,25 @@ def get_special_emote_count(message: discord.Reaction.message) -> dict[str, int]
 
 
 # TODO: Implement the highlights channel reaction handling
-@client.event
-async def on_reaction_add(reaction, user):
-    post_to_highlights_threshold = 5
+# @client.event
+# async def on_reaction_add(reaction, user):
+    # post_to_highlights_threshold = 5
 
     # define our terms
-    message = reaction.message
-    special_emote_counts = get_special_emote_count(message=message)
+    # message = reaction.message
+    # special_emote_counts = get_special_emote_count(message=message)
 
     # special conditions
-    over_react_threshold = reaction.count > post_to_highlights_threshold
+    #over_react_threshold = reaction.count > post_to_highlights_threshold
 
     
 
-    we_should_post_this_message = all([])
+    # we_should_post_this_message = all([])
     
 
     # Send the embed to the starboard channel.
     # await starboard_channel.send(embed=starboard_message)
-    
-@client.event
-async def on_message(message):
 
-    # Make sure the message came from a server and not a DM.
-    if message.guild:
-        await send_content_pings(message=message)
-    
-    # if the user uploaded an image in their message, extract the text and post it in a thread reply.
-    if message.attachments:
-        if attachment_img_count(message.attachments):
-            await extract_text_from_incoming_messages_main(message=message)
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")
 async def FocusMode(interaction: discord.Interaction, minutes: int):
@@ -373,9 +347,9 @@ async def Duplicate_Emote_Command(interaction: discord.Interaction):
                     print(f"An HTTPException occurred: {error}")
                     image_save_errors += 1
 
-    emote_hash_dict = find_duplicate_emojis.generate_hash_dict(emote_list=emote_list)
+    emote_hash_dict = generate_hash_dict(emote_list=emote_list)
 
-    emote_and_dupe_dict = find_duplicate_emojis.find_duplicates_through_hashes(emote_hash_dict=emote_hash_dict)
+    emote_and_dupe_dict = find_duplicates_through_hashes(emote_hash_dict=emote_hash_dict)
 
     emote_dict_contains_values = bool(len(emote_and_dupe_dict.keys()))
 

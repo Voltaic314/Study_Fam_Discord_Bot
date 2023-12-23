@@ -337,12 +337,16 @@ async def on_message(message):
     print("Message may or may not have been a content posting.")
 
     # if the user uploaded an image in their message, extract the text and post it in a thread reply.
+    # TODO: Fix image transcriptions once we decide the best way to do this.
+    '''
     print("Now checking if message has an image...")
     if message.attachments:
         print("Message contains attachments")
         if attachment_img_count(message.attachments):
             print("Yep msg attachments contain images")
             await extract_text_from_incoming_messages_main(message=message)
+    '''
+    
 
 
 if __name__ == "__main__":

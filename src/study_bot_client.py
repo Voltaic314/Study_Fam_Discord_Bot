@@ -67,22 +67,23 @@ class Study_Bot_Client(discord.Client):
         # start the reminders loop
         self.loop.create_task(self.remind_all_users())
 
-        # clear the void channel with the last bit of this code
-        guild = self.get_guild(self.server_id)
-        auto_delete_channel_id = config.discord_bot_credentials["Auto_Delete_Channel_ID"]
-        auto_delete_channel = guild.get_channel(auto_delete_channel_id)
+        #### NOTE: disabling void clearing in accordance with new server rules. Mods want a paper trail of things. If you want the auto-delete channel to work, you need to uncomment out this code. ###
+        # # clear the void channel with the last bit of this code
+        # guild = self.get_guild(self.server_id)
+        # auto_delete_channel_id = config.discord_bot_credentials["Auto_Delete_Channel_ID"]
+        # auto_delete_channel = guild.get_channel(auto_delete_channel_id)
 
-        five_minutes_in_seconds = 300
-        await asyncio.sleep(five_minutes_in_seconds)
+        # five_minutes_in_seconds = 300
+        # await asyncio.sleep(five_minutes_in_seconds)
 
-        async for message in auto_delete_channel.history(limit=None, oldest_first=True):
-            if not message.pinned:
-                await message.delete()
-                await asyncio.sleep(5)
+        # async for message in auto_delete_channel.history(limit=None, oldest_first=True):
+        #     if not message.pinned:
+        #         await message.delete()
+        #         await asyncio.sleep(5)
 
-        for thread in auto_delete_channel.threads:
-            await thread.delete()
-            await asyncio.sleep(5)
+        # for thread in auto_delete_channel.threads:
+        #     await thread.delete()
+        #     await asyncio.sleep(5)
                 
         
     async def focus_mode_maintenance(self):

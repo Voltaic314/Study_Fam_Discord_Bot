@@ -135,7 +135,7 @@ def get_content_ping_message(message: discord.Message) -> str:
         return f"{Dr_K_Twitch_Content_Ping_Role.mention} - Dr. K has started a live stream on Twitch!"
 
 
-async def post_instagram_reel_media_url(message: discord.Message) -> int or None:
+async def post_instagram_reel_media_url(message: discord.Message) -> bool:
     '''
     This function will post all of the instagram reel mp4 files of each respective
     reel from the reel urls in the given message.
@@ -174,7 +174,7 @@ def attachment_img_count(attachments: discord.Attachment) -> int:
     return img_count
 
 
-async def extract_text_from_images(attachments: discord.Attachment) -> dict[str, str] or None:
+async def extract_text_from_images(attachments: discord.Attachment) -> dict[str, str]:
     
     # If there were no imgs in the message attachments, don't bother extracting text.
     if not attachment_img_count(attachments=attachments):

@@ -5,7 +5,7 @@ import traceback
 
 import discord
 
-import config
+from config import *
 from text_processing import Text_Processing
 from time_modulation import Time_Stuff
 from video_processing import Video
@@ -35,17 +35,17 @@ class Study_Bot_Client(discord.Client):
         self.synced = False
 
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
-        self.SELF_CARE_CHANNEL_ID = config.discord_bot_credentials["Self_Care_Channel_ID"]
-        self.server_id = config.discord_bot_credentials["Server_ID_for_Study_Fam"]
-        self.user_id = config.discord_bot_credentials["Client_ID"]
-        self.Focus_Role_int = config.discord_bot_credentials["Focus_Role_ID"]
+        self.SELF_CARE_CHANNEL_ID = discord_bot_credentials["Self_Care_Channel_ID"]
+        self.server_id = discord_bot_credentials["Server_ID_for_Study_Fam"]
+        self.user_id = discord_bot_credentials["Client_ID"]
+        self.Focus_Role_int = discord_bot_credentials["Focus_Role_ID"]
         self.guild = self.get_guild(self.server_id)
         debug_channel_id = 1140698361318625382
         self.debug_channel = self.get_channel(debug_channel_id)
 
     async def get_activity_object(self) -> object:
         # setup the advice variables and set the daily status to whatever the advice is
-        advice_endpoints = config.advice_api_endpoints        
+        advice_endpoints = advice_api_endpoints        
         daily_random_advice = Advice(endpoints=advice_endpoints).get_random_advice()
         full_advice_string = f'Advice: {daily_random_advice}'
         advice_to_update = discord.Game(full_advice_string)
@@ -71,7 +71,7 @@ class Study_Bot_Client(discord.Client):
         #### NOTE: disabling void clearing in accordance with new server rules. Mods want a paper trail of things. If you want the auto-delete channel to work, you need to uncomment out this code. ###
         # # clear the void channel with the last bit of this code
         # guild = self.get_guild(self.server_id)
-        # auto_delete_channel_id = config.discord_bot_credentials["Auto_Delete_Channel_ID"]
+        # auto_delete_channel_id = discord_bot_credentials["Auto_Delete_Channel_ID"]
         # auto_delete_channel = guild.get_channel(auto_delete_channel_id)
 
         # five_minutes_in_seconds = 300
@@ -595,10 +595,10 @@ async def give_max_focus_time(interaction: discord.Interaction):
                                                              "(mod only)")
 async def remove_user_focus_override(interaction: discord.Interaction, user_to_be_removed: discord.User):
     await interaction.response.defer()
-    server_id = config.discord_bot_credentials["Server_ID_for_Study_Fam"]
+    server_id = discord_bot_credentials["Server_ID_for_Study_Fam"]
     guild = client.get_guild(server_id)
     member = interaction.user
-    focus_role_id = config.discord_bot_credentials["Focus_Role_ID"]
+    focus_role_id = discord_bot_credentials["Focus_Role_ID"]
 
     # All we care about is if the user has the correct role, out of the 3 roles above, as long as they have at least one
     user_doing_command_has_correct_authorization = user_is_moderator_or_higher(interaction.user.roles)
@@ -721,7 +721,7 @@ async def Duplicate_Emote_Command(interaction: discord.Interaction):
 @tree.command(name="get_random_advice", description="Responds with random advice from the advice API.")
 async def get_random_advice_for_bot_command(interaction: discord.Interaction):
     await interaction.response.defer()
-    advice = Advice(config.advice_api_endpoints).get_random_advice()
+    advice = Advice(advice_api_endpoints).get_random_advice()
     await interaction.channel.send(advice)
     await interaction.followup.send("Advice sent to channel!")
 
@@ -811,5 +811,5 @@ async def on_error(event, *args, **kwargs):
 
 
 if __name__ == "__main__":
-    TOKEN = config.discord_bot_credentials["API_Key"]
+    TOKEN = discord_bot_credentials["API_Key"]
     client.run(TOKEN)

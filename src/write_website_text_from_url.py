@@ -128,7 +128,7 @@ def build_header_string(url: str) -> str or None:
         header_string_start = '-'*25 + '\n'
         output_string = header_string_start + \
         f'The following information is from {url}' + \
-        '\n' + '-'*25
+        '\n' + header_string_start + "\n"
         return output_string
     
 

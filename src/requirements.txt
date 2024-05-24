@@ -12,7 +12,7 @@ ImageHash==4.3.1
 opencv-python==4.6.0.66
 pytesseract==0.3.10
 pytube==15.0.0
-requests==2.28.2
+requests==2.32.2
 wheel==0.37.1
 youtube-transcript-api==0.6.1
 accelerate==0.28.0
@@ -20,3 +20,5 @@ bitsandbytes==0.43.0
 einops==0.7.0
 langchain==0.1.14
 transformers==4.39.2
+yt-dlp==2024.4.9
+mutagen==1.47.0

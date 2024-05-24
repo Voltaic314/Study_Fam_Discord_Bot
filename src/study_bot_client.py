@@ -325,8 +325,13 @@ class Study_Bot_Client(discord.Client):
         return True
 
 
+
 client = Study_Bot_Client()
 tree = discord.app_commands.CommandTree(client)
+os.chdir(client.script_dir)
+database_file_name_and_path = File_Processing.return_file_name_with_current_directory(
+    "Focus_Mode_Info.db")
+database_instance = Database(database_file_name_and_path)
 
 
 @client.event
@@ -348,14 +353,6 @@ async def on_message(message):
             print("Yep msg attachments contain images")
             await extract_text_from_incoming_messages_main(message=message)
     '''
-    
-
-client = Study_Bot_Client()
-tree = discord.app_commands.CommandTree(client)
-os.chdir(client.script_dir)
-database_file_name_and_path = File_Processing.return_file_name_with_current_directory(
-    "Focus_Mode_Info.db")
-database_instance = Database(database_file_name_and_path)
 
 
 def generate_starboard_embed(message, star_count):
@@ -804,6 +801,8 @@ async def long_term_reminder(interaction: discord.Interaction, date: str, time: 
         interaction.response.is_done()
 
 # this is primarily what handles the debugging messages that get sent to the channel
+# idk why I did this this doesn't work lol
+## FIXME: someone fix this please. I don't have the time. 
 @client.event
 async def on_error(event, *args, **kwargs):
     # Handle exceptions that occur in event handlers

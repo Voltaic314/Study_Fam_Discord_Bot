@@ -1,5 +1,6 @@
 import asyncio
 import os
+import sys
 import random
 import traceback
 
@@ -10,7 +11,6 @@ from text_processing import Text_Processing
 from time_modulation import Time_Stuff
 from video_processing import Video
 from advice import Advice
-from discord_utility_functions import get_content_ping_message, attachment_img_count, extract_text_from_incoming_messages_main
 from discord_utility_functions import *
 from database import Database
 from file_processing import File_Processing
@@ -24,6 +24,7 @@ class Study_Bot_Client(discord.Client):
         intents = discord.Intents.default()
         intents.members = True  # Enable the GUILD_MEMBERS intent
         intents.messages = True
+        intents.guild_messages = True
         intents.message_content = True
         intents.reactions = True
         super().__init__(intents=intents)
@@ -40,8 +41,7 @@ class Study_Bot_Client(discord.Client):
         self.user_id = discord_bot_credentials["Client_ID"]
         self.Focus_Role_int = discord_bot_credentials["Focus_Role_ID"]
         self.guild = self.get_guild(self.server_id)
-        debug_channel_id = 1140698361318625382
-        self.debug_channel = self.get_channel(debug_channel_id)
+        self.example = 'example'
 
     async def get_activity_object(self) -> object:
         # setup the advice variables and set the daily status to whatever the advice is
@@ -237,9 +237,6 @@ class Study_Bot_Client(discord.Client):
             # wait 1 min between checking to see who needs to be reminded.
             await asyncio.sleep(60)
 
-    async def handle_exception(self, error):
-        traceback_text = " ".join(traceback.format_exception(type(error), error, error.__traceback__))
-        await self.debug_channel.send(f"An error occurred:```\n{traceback_text}```")
 
     @staticmethod
     async def get_last_message_time_sent_from_user(user_id: int, channel: object):
@@ -325,19 +322,22 @@ class Study_Bot_Client(discord.Client):
         return True
 
 
+##########################################################################################
 client = Study_Bot_Client()
 tree = discord.app_commands.CommandTree(client)
+os.chdir(client.script_dir)
+database_file_name_and_path = File_Processing.return_file_name_with_current_directory(
+    "Focus_Mode_Info.db")
+database_instance = Database(database_file_name_and_path)
 
 
 @client.event
-async def on_message(message):
+async def on_message(message: discord.message.Message):
 
-    print("message was posted to server.")
+    print(message.content)
 
     await client.send_content_pings(message=message)
     
-    print("Message may or may not have been a content posting.")
-
     # if the user uploaded an image in their message, extract the text and post it in a thread reply.
     # TODO: Fix image transcriptions once we decide the best way to do this.
     '''
@@ -348,14 +348,6 @@ async def on_message(message):
             print("Yep msg attachments contain images")
             await extract_text_from_incoming_messages_main(message=message)
     '''
-    
-
-client = Study_Bot_Client()
-tree = discord.app_commands.CommandTree(client)
-os.chdir(client.script_dir)
-database_file_name_and_path = File_Processing.return_file_name_with_current_directory(
-    "Focus_Mode_Info.db")
-database_instance = Database(database_file_name_and_path)
 
 
 def generate_starboard_embed(message, star_count):
@@ -784,7 +776,7 @@ async def short_term_reminder(interaction: discord.Interaction, minutes: int, re
 async def long_term_reminder(interaction: discord.Interaction, date: str, time: str, reminder_message: str):
     await interaction.response.defer()
 
-    format_check = Time_Stuff.check_user_formatting_for_long_term_remiinders(date=date, time=time)
+    format_check = Time_Stuff.check_user_formatting_for_long_term_reminders(date=date, time=time)
 
     if "incorrect" in format_check:
     
@@ -807,9 +799,19 @@ async def long_term_reminder(interaction: discord.Interaction, date: str, time: 
 @client.event
 async def on_error(event, *args, **kwargs):
     # Handle exceptions that occur in event handlers
-    await client.handle_exception(args[0])
+    debug_channel = client.get_channel(1140698361318625382) # this should be the ID of the bot labs and logging channel in the server :) 
+    # format the text so that we just get the error and the last line of the traceback
+    traceback_text = traceback.format_exc().splitlines()[-1]
+    if event == 'on_message': 
+        # put the message contents into the traceback text
+        message = args[0].content
+        message_time = args[0].created_at
+        message_user = args[0].author
+        traceback_text = f"Message: {message} \nTime: {message_time} \nUser: {message_user} \n{traceback_text}"
+
+    await debug_channel.send(f"An error occurred:\n```{traceback_text}```")
 
 
 if __name__ == "__main__":
-    TOKEN = discord_bot_credentials["API_Key"]
+    TOKEN = discord_bot_credentials.get("API_Key", "")
     client.run(TOKEN)

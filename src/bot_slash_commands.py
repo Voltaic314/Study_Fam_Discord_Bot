@@ -446,7 +446,7 @@ async def short_term_reminder(interaction: discord.Interaction, minutes: int, re
 async def long_term_reminder(interaction: discord.Interaction, date: str, time: str, reminder_message: str):
     await interaction.response.defer()
 
-    format_check = Time_Stuff.check_user_formatting_for_long_term_remiinders(date=date, time=time)
+    format_check = Time_Stuff.check_user_formatting_for_long_term_reminders(date=date, time=time)
 
     if "incorrect" in format_check:
     

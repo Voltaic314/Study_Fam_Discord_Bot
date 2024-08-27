@@ -39,7 +39,7 @@ class Time_Stuff:
 
 
     @staticmethod
-    def check_user_formatting_for_long_term_remiinders(date: str, time: str) -> str:
+    def check_user_formatting_for_long_term_reminders(date: str, time: str) -> str:
         # formatting user_input strings to remove any extra spaces
         date = date.strip()
         time = time.strip()
@@ -125,8 +125,8 @@ class Time_Stuff:
             return False
         
         if discord_time:
-            utc_offset_for_dst = 3600 * 5
-            utc_offset_for_non_dst = 3600 * 6
+            utc_offset_for_dst = 3600 * 7
+            utc_offset_for_non_dst = 3600 * 8
             actual_message_time_in_EST = input_time_in_epochs - utc_offset_for_dst
             time_difference_of_current_vs_input = current_time - actual_message_time_in_EST
             return time_difference_of_current_vs_input >= threshold_time_in_seconds

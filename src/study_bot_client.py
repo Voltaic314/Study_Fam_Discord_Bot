@@ -801,15 +801,17 @@ async def on_error(event, *args, **kwargs):
     # Handle exceptions that occur in event handlers
     debug_channel = client.get_channel(1140698361318625382) # this should be the ID of the bot labs and logging channel in the server :) 
     # format the text so that we just get the error and the last line of the traceback
-    traceback_text = traceback.format_exc().splitlines()[-1]
+    traceback_text = f"```{traceback.format_exc().splitlines()[-1]}```"
     if event == 'on_message': 
         # put the message contents into the traceback text
         message = args[0].content
         message_time = args[0].created_at
         message_user = args[0].author
-        traceback_text = f"Message: {message} \nTime: {message_time} \nUser: {message_user} \n{traceback_text}"
+        traceback_text = f"Message: {message} \nTime: {message_time} \nUser: {message_user} \n" + traceback_text
 
-    await debug_channel.send(f"An error occurred:\n```{traceback_text}```")
+    
+
+    await debug_channel.send(f"An error occurred:\n{traceback_text}")
 
 
 if __name__ == "__main__":

@@ -267,22 +267,21 @@ class Study_Bot_Client(discord.Client):
         
         # if the message is dr k related content
         if message_to_send:
-            Dr_K_Content_Channel_ID = 1078121853266165870
-            Dr_K_Content_Channel = message.guild.get_channel(Dr_K_Content_Channel_ID)
+            current_channel = message.channel
             
-            message_was_yt_content = "YouTube" in message_to_send
+            message_was_yt_content = "youtube" in str(message_to_send).lower()
 
             # do transcriptions if necessary
             # note that if the bot does this route, it will send the ping in the thread instead.
             if message_was_yt_content:
-                await self.YT_Video_Transcriptions(message=message)
+                await self.YT_Video_Transcriptions(message, message_to_send)
 
             else:
                 # send the notification message
-                await Dr_K_Content_Channel.send(message_to_send)
+                await current_channel.send(message_to_send)
 
     @staticmethod
-    async def YT_Video_Transcriptions(message: discord.Message) -> bool:
+    async def YT_Video_Transcriptions(message: discord.Message, message_to_send: str) -> bool:
         '''
         This function will parse through a message object to get the YT URL, then
         transcribe that YT video to a txt file, and post that following info to a 
@@ -309,13 +308,16 @@ class Study_Bot_Client(discord.Client):
                                              auto_archive_duration=10080)
         
         # send the file to the thread in a message
-        with open(transcript_filename, encoding="utf-8") as txt_file:
-            # prepare the file object
-            txt_file_to_upload = discord.File(
-                txt_file, filename=transcript_filename)
+        txt_file = open(transcript_filename, mode="rb")
+        txt_file_to_upload = discord.File(txt_file, filename=transcript_filename)
+        try:
             await thread.send(content="Transcription File: ", file=txt_file_to_upload)
-            message_to_send = get_content_ping_message(message=message)
-            await thread.send(message_to_send)
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+        txt_file.close()
+
+        await thread.send(message_to_send)
 
         # remove the file now that we've sent it
         os.remove(transcript_filename)
@@ -333,6 +335,8 @@ database_instance = Database(database_file_name_and_path)
 
 @client.event
 async def on_message(message: discord.message.Message):
+    if message.author == client.user:
+        return # ignore self messages to not cause an infinite loop of processing
 
     print(message.content)
 
@@ -541,7 +545,7 @@ async def display_all_in_focus_mode(interaction: discord.Interaction):
 
 @tree.command(name="test_response", description="If the bot is truly online, it will respond back with a response.")
 async def test_response(interaction: discord.Interaction):
-    await interaction.response.send_message("I have received a test response and I am working fine!",
+    await interaction.response.send_message("Yep, I'm alive!",
                                             ephemeral=False)
 
 
@@ -812,6 +816,8 @@ async def on_error(event, *args, **kwargs):
         message_user = args[0].author
         traceback_text = f"Message: {message} \nTime: {message_time} \nUser: {message_user} \n" + traceback_text
 
+    # print the whole traceback to the console
+    print(traceback.format_exc())
     await debug_channel.send(f"An error occurred:\n{traceback_text}")
 
 

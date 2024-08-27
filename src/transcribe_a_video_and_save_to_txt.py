@@ -125,7 +125,7 @@ def write_string_to_text_file(txt_filename: str, string_to_write: str) -> None:
 
     Returns: None
     '''
-    with open(txt_filename, 'a') as txt_file:
+    with open(txt_filename, 'a', encoding='utf-8') as txt_file:
         txt_file.write(string_to_write)
 
 

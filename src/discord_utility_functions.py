@@ -117,12 +117,13 @@ def get_content_ping_message(message: discord.Message) -> str:
     Dr_K_YT_Shorts_Content_Ping_Role = guild.get_role(Dr_K_YT_Shorts_Content_Ping_Role_ID)
     Dr_K_Twitch_Content_Ping_Role = guild.get_role(Dr_K_Twitch_Content_Ping_Role_ID)
     
-    video_is_not_private = not carl_alert_msg.yt_video_is_private
-
     # note this means member only content won't ping people. 
     # so rip members, but oh well. can't please everyone
     # not without doubling up and making member specific ping roles. 
-    if carl_alert_msg.is_yt_video and video_is_not_private:
+    if carl_alert_msg.is_yt_video:
+
+        if carl_alert_msg.video.is_private:
+            return f"Error - Private Video Uploaded by Dr. K"
 
         # now check to see if it's a normal video or a short
         if carl_alert_msg.video.is_short:

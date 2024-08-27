@@ -1,8 +1,8 @@
 import os
 import requests
 
-from pytube import YouTube
-import pytube.exceptions
+from pytubefix import YouTube
+import pytubefix.exceptions
 import youtube_transcript_api
 from youtube_transcript_api.formatters import TextFormatter
 
@@ -73,7 +73,7 @@ class Video(YouTube):
             self.streams
             return False
         
-        except pytube.exceptions.VideoPrivate:
+        except pytubefix.exceptions.VideoPrivate:
             return True
     
     @property
@@ -124,3 +124,7 @@ class Video(YouTube):
         File_Processing.write_string_to_text_file(txt_filename=txt_filename, string_to_write=total_txt_to_write)
         return os.path.exists(txt_filename)
     
+
+if __name__ == '__main__':
+    example_video_link = "https://www.youtube.com/watch?v=uBiCK84EW38"
+    video = Video(url=example_video_link)

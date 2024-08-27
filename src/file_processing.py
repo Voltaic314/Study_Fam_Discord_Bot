@@ -65,7 +65,7 @@ class File_Processing:
 
     @staticmethod
     def write_string_to_text_file(txt_filename, string_to_write):
-        with open(txt_filename, 'a') as txt_file:
+        with open(txt_filename, 'a', encoding='utf-8') as txt_file:
             txt_file.write(string_to_write)
 
     @staticmethod

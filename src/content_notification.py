@@ -40,7 +40,7 @@ class ContentNotification:
 
     @property
     def is_yt_video(self):
-        return "youtu.be" in self.message_contents
+        return "youtu.be" in self.message_contents.lower() or 'youtube' in self.message_contents.lower()
     
     @property
     def yt_video_is_private(self):

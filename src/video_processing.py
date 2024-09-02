@@ -2,7 +2,7 @@ import os
 import requests
 
 from pytubefix import YouTube
-import pytubefix.exceptions
+from pytubefix import exceptions as pt_exceptions
 import youtube_transcript_api
 from youtube_transcript_api.formatters import TextFormatter
 
@@ -73,7 +73,23 @@ class Video(YouTube):
             self.streams
             return False
         
-        except pytubefix.exceptions.VideoPrivate:
+        except pt_exceptions.VideoPrivate:
+            return True
+        
+    @property
+    def is_premiere(self) -> bool:
+        '''
+        This method returns True if the video is a premiere video or not.
+        
+        Returns: True if video is a premiere, else False.
+        '''
+
+        try:
+            self.streams
+            return False
+        
+        # usually it only throws this error if it's a premiere video
+        except pt_exceptions.VideoUnavailable:
             return True
     
     @property
@@ -99,7 +115,22 @@ class Video(YouTube):
             return response.url == yt_short_url
         except requests.exceptions.RequestException:
             return False
+    
+    @property
+    def is_yt_livestream(self):
+        '''
+        This function checks to see if the video is a YouTube livestream or not.
         
+        Returns: True if the video is a YouTube livestream, else False.
+        '''
+        try:
+            self.streams
+            return False
+        
+        # this isn't fool proof but it usually throws this error if it's a livestream
+        except pt_exceptions.UnknownVideoError:
+            return True
+
     @property
     def caption_text(self):
         try:

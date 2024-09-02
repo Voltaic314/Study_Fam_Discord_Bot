@@ -274,14 +274,21 @@ class Study_Bot_Client(discord.Client):
             # do transcriptions if necessary
             # note that if the bot does this route, it will send the ping in the thread instead.
             if message_was_yt_content:
-                await self.YT_Video_Transcriptions(message, message_to_send)
+                video_link = Text_Processing.extract_video_url(message.content)
+                video = Video(url=video_link)
+                if video.is_private or video.is_premiere:
+                    # do nothing
+                    return
+                
+                # if the video is not private or a premiere, transcribe it and send the pings in the thread.
+                await self.YT_Video_Transcriptions(message, message_to_send, video)
 
             else:
                 # send the notification message
                 await current_channel.send(message_to_send)
 
     @staticmethod
-    async def YT_Video_Transcriptions(message: discord.Message, message_to_send: str) -> bool:
+    async def YT_Video_Transcriptions(message: discord.Message, message_to_send: str, video: Video) -> bool:
         '''
         This function will parse through a message object to get the YT URL, then
         transcribe that YT video to a txt file, and post that following info to a 
@@ -293,8 +300,6 @@ class Study_Bot_Client(discord.Client):
 
         Returns: True if the file got transcribed, sent to the thread, and file got removed locally.
         '''
-        video_link = Text_Processing.extract_video_url(message.content)
-        video = Video(url=video_link)
 
         content_was_transcribed = video.transcribe_yt_video()
         if not content_was_transcribed:
@@ -337,9 +342,7 @@ database_instance = Database(database_file_name_and_path)
 async def on_message(message: discord.message.Message):
     if message.author == client.user:
         return # ignore self messages to not cause an infinite loop of processing
-
-    print(message.content)
-
+    
     await client.send_content_pings(message=message)
     
     # if the user uploaded an image in their message, extract the text and post it in a thread reply.

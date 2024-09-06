@@ -36,7 +36,15 @@ class ContentNotification:
     
     @property
     def is_twitch_stream(self):
-        return "live" in self.message_contents
+        return "live" in self.message_contents.lower() and "twitch" in self.message_contents.lower()
+    
+    @property
+    def is_yt_short(self):
+        return "short" in self.message_contents.lower()
+    
+    @property
+    def is_yt_livestream(self):
+        return "live" in self.message_contents.lower() and "youtube" in self.message_contents.lower()
 
     @property
     def is_yt_video(self):
@@ -44,4 +52,4 @@ class ContentNotification:
     
     @property
     def yt_video_is_private(self):
-        return self.video.is_private
+        return not self.video.is_watchable

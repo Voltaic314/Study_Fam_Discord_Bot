@@ -62,7 +62,7 @@ class Video(YouTube):
         return os.path.exists(self.filename)
     
     @property
-    def is_private(self) -> bool:
+    def is_watchable(self) -> bool:
         '''
         This method returns True if the video is a private video or not.
         
@@ -71,26 +71,19 @@ class Video(YouTube):
 
         try:
             self.streams
-            return False
-        
-        except pt_exceptions.VideoPrivate:
             return True
         
-    @property
-    def is_premiere(self) -> bool:
-        '''
-        This method returns True if the video is a premiere video or not.
-        
-        Returns: True if video is a premiere, else False.
-        '''
-
-        try:
-            self.streams
-            return False
-        
-        # usually it only throws this error if it's a premiere video
-        except pt_exceptions.VideoUnavailable:
+        # This might seem like really weird code... and that's because it is. haha
+        # The reason I am doing this is because this error gets thrown for YT Livestreams in my use-case. 
+        # I do not recommend using this as a blanket for all YT video scanning. 
+        ## NOTE: PLEASE DON'T RELY ON THIS IF YOU'RE COPYING MY CODE INTO YOUR USE CASE.
+        except pt_exceptions.UnknownVideoError:
             return True
+        
+        except Exception:
+            return False # sometimes these exceptions are good to know which ones it is 
+            # but frankly I am tired of messing with this so whatever. :) <3
+            # bite me
     
     @property
     def is_short(self) -> bool:
@@ -117,7 +110,7 @@ class Video(YouTube):
             return False
     
     @property
-    def is_yt_livestream(self):
+    def is_livestream(self):
         '''
         This function checks to see if the video is a YouTube livestream or not.
         
@@ -130,6 +123,9 @@ class Video(YouTube):
         # this isn't fool proof but it usually throws this error if it's a livestream
         except pt_exceptions.UnknownVideoError:
             return True
+        
+        except Exception:
+            return False
 
     @property
     def caption_text(self):

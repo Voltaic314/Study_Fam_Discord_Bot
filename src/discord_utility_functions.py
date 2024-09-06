@@ -122,7 +122,11 @@ def get_content_ping_message(message: discord.Message) -> str:
     # not without doubling up and making member specific ping roles. 
     if carl_alert_msg.is_yt_video:
 
-        if carl_alert_msg.video.is_private:
+        ## NOTE: This will ping twitch users for YT live streams but I've asked about this and people seem to be fine with it. We can make a live stream role if we need to.
+        if carl_alert_msg.is_yt_livestream:
+            return f"{Dr_K_Twitch_Content_Ping_Role.mention} - Dr. K has started a live stream on YouTube!"
+
+        if not carl_alert_msg.video.is_watchable:
             return f"Error - Private Video Uploaded by Dr. K"
 
         # now check to see if it's a normal video or a short

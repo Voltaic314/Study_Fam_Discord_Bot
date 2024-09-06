@@ -266,7 +266,7 @@ class Study_Bot_Client(discord.Client):
         message_to_send = get_content_ping_message(message=message)
         
         # if the message is dr k related content
-        if message_to_send:
+        if message_to_send and 'Error' not in message_to_send:
             current_channel = message.channel
             
             message_was_yt_content = "youtube" in str(message_to_send).lower()
@@ -300,6 +300,9 @@ class Study_Bot_Client(discord.Client):
 
         Returns: True if the file got transcribed, sent to the thread, and file got removed locally.
         '''
+
+        if video.is_private or video.is_premiere:
+            return False
 
         content_was_transcribed = video.transcribe_yt_video()
         if not content_was_transcribed:

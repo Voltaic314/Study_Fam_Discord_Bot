@@ -276,7 +276,7 @@ class Study_Bot_Client(discord.Client):
             if message_was_yt_content:
                 video_link = Text_Processing.extract_video_url(message.content)
                 video = Video(url=video_link)
-                if video.is_private or video.is_premiere:
+                if not video.is_watchable:
                     # do nothing
                     return
                 
@@ -301,34 +301,42 @@ class Study_Bot_Client(discord.Client):
         Returns: True if the file got transcribed, sent to the thread, and file got removed locally.
         '''
 
-        if video.is_private or video.is_premiere:
+        if not video.is_watchable:
             return False
+        
+        video_is_transcribable = video.is_watchable and not video.is_livestream
 
-        content_was_transcribed = video.transcribe_yt_video()
-        if not content_was_transcribed:
-            print("content was not able to be transcribed")
-            return False
-
-        transcript_filename = Text_Processing.format_file_name(video.title)
         thread_name = Text_Processing.format_title_of_vid_for_txt_file(video.title)
 
         thread = await message.create_thread(name=thread_name, 
                                              auto_archive_duration=10080)
-        
-        # send the file to the thread in a message
-        txt_file = open(transcript_filename, mode="rb")
-        txt_file_to_upload = discord.File(txt_file, filename=transcript_filename)
-        try:
-            await thread.send(content="Transcription File: ", file=txt_file_to_upload)
-        except Exception as e:
-            print(e)
-            traceback.print_exc()
-        txt_file.close()
+
+        content_was_transcribed = False
+        if video_is_transcribable:
+            content_was_transcribed = video.transcribe_yt_video()
+            if not content_was_transcribed:
+                print("content was not able to be transcribed")
+                return False
+
+            transcript_filename = Text_Processing.format_file_name(video.title)
+
+            
+            # send the file to the thread in a message
+            txt_file = open(transcript_filename, mode="rb")
+            txt_file_to_upload = discord.File(txt_file, filename=transcript_filename)
+            try:
+                await thread.send(content="Transcription File: ", file=txt_file_to_upload)
+            except Exception as e:
+                print(e)
+                traceback.print_exc()
+            txt_file.close()
 
         await thread.send(message_to_send)
 
         # remove the file now that we've sent it
-        os.remove(transcript_filename)
+        if content_was_transcribed:
+            os.remove(transcript_filename)
+    
         return True
 
 

@@ -41,10 +41,6 @@ class ContentNotification:
     @property
     def is_yt_short(self):
         return "short" in self.message_contents.lower()
-    
-    @property
-    def is_yt_livestream(self):
-        return "live" in self.message_contents.lower() and "youtube" in self.message_contents.lower()
 
     @property
     def is_yt_video(self):

@@ -70,7 +70,7 @@ class Video(YouTube):
         '''
 
         try:
-            self.streams
+            self.check_availability()
             return True
         
         # This might seem like really weird code... and that's because it is. haha
@@ -117,14 +117,13 @@ class Video(YouTube):
         Returns: True if the video is a YouTube livestream, else False.
         '''
         try:
-            self.streams
+            yt = YouTube(self.url)
+            return yt.vid_info['videoDetails'].get('isLive', False)
+        except pt_exceptions.VideoUnavailable:
+            print("The video is unavailable.")
             return False
-        
-        # this isn't fool proof but it usually throws this error if it's a livestream
-        except pt_exceptions.UnknownVideoError:
-            return True
-        
-        except Exception:
+        except Exception as e:
+            print(f"An error occurred: {e}")
             return False
 
     @property
@@ -132,7 +131,7 @@ class Video(YouTube):
         try:
             transcript = youtube_transcript_api.YouTubeTranscriptApi.get_transcript(video_id=self.id)
         
-        except youtube_transcript_api._errors.TranscriptsDisabled(video_id=self.id):
+        except youtube_transcript_api._errors.TranscriptsDisabled:
             return ''
         
         formatter = TextFormatter()
@@ -154,4 +153,7 @@ class Video(YouTube):
 
 if __name__ == '__main__':
     example_video_link = "https://www.youtube.com/watch?v=uBiCK84EW38"
-    video = Video(url=example_video_link)
+    live_video_link = "https://youtu.be/WGeigBA-kmk "
+    video = Video(url=live_video_link)
+    print(video.is_watchable)
+    print(video.is_livestream)

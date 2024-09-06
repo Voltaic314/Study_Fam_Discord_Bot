@@ -123,7 +123,7 @@ def get_content_ping_message(message: discord.Message) -> str:
     if carl_alert_msg.is_yt_video:
 
         ## NOTE: This will ping twitch users for YT live streams but I've asked about this and people seem to be fine with it. We can make a live stream role if we need to.
-        if carl_alert_msg.is_yt_livestream:
+        if carl_alert_msg.video.is_livestream:
             return f"{Dr_K_Twitch_Content_Ping_Role.mention} - Dr. K has started a live stream on YouTube!"
 
         if not carl_alert_msg.video.is_watchable:

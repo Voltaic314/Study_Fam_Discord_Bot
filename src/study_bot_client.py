@@ -820,7 +820,7 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
     msg_to_send = f"Posted by {interaction.user.mention}\n"
 
     if message:
-        msg_to_send += f"{interaction.user.display_name}'s caption: {message}\n"
+        msg_to_send += f"Caption: {message}\n"
     
     msg_to_send += f"Source: <{url}>"
 

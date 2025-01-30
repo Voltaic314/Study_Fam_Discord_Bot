@@ -814,9 +814,16 @@ async def long_term_reminder(interaction: discord.Interaction, date: str, time: 
 
 
 @tree.command(name="embed_video", description="Embeds a video from a URL into the channel.")
-async def embed_video(interaction: discord.Interaction, message: str, url: str):
+async def embed_video(interaction: discord.Interaction, url: str, message: str = ''):
     await interaction.response.defer()
     
+    msg_to_send = f"Posted by {interaction.user.mention}\n"
+
+    if message:
+        msg_to_send += f"{interaction.user.display_name}'s caption: {message}\n"
+    
+    msg_to_send += f"Source: <{url}>"
+
     video = Video(url)
     filename = None
 
@@ -832,7 +839,8 @@ async def embed_video(interaction: discord.Interaction, message: str, url: str):
     # Upload the video if it exists
     if os.path.exists(filename):
         video_file = discord.File(filename)
-        await interaction.channel.send(content=message, file=video_file)
+        await interaction.channel.send(content=msg_to_send, file=video_file)
+        await interaction.delete_original_response()
         
         # Clean up the file after upload
         os.remove(filename)

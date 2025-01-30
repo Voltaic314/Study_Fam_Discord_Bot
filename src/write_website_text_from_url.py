@@ -11,6 +11,7 @@ import os
 from bs4 import BeautifulSoup
 from datetime import datetime
 from urllib.parse import urlparse
+from typing import Union
 
 
 def get_current_date_string() -> str:
@@ -36,7 +37,7 @@ def is_website_up(url: str) -> bool:
     return response.status_code == 200
 
 
-def extract_domain_from_website(url: str) -> str or None:
+def extract_domain_from_website(url: str) -> Union[str, None]:
     '''
     This function will take a given url like www.google.com for example
 
@@ -101,7 +102,7 @@ def extract_website_text(url: str) -> str:
 
 
 
-def build_header_string(url: str) -> str or None:
+def build_header_string(url: str) -> Union[str, None]:
     '''
     This function takes the url and extracts the domain name from it,
     i.e. google.com into Google, then it will add that to a formatted
@@ -126,7 +127,7 @@ def build_header_string(url: str) -> str or None:
         return output_string
     
 
-def user_input_txt_filename() -> str or None:
+def user_input_txt_filename() -> Union[str, None]:
     '''
     This function is a while loop that asks the user whether or not
     they wish to provide their own filename to write to or not.

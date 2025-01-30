@@ -21,3 +21,7 @@ TheAddictionYouDidntKnowYouHad.mp3
 src/nohup.out
 src/config.py
 /src/AI_Models
+venv/
+.venv/
+__pycache__/
+.__pycache__

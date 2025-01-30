@@ -465,32 +465,6 @@ async def long_term_reminder(interaction: discord.Interaction, date: str, time: 
         await interaction.followup.send("You will be reminded at that date and time with your message!")
         interaction.response.is_done()
 
-@tree.command(name="embed_video", description="Embeds a video from a URL into the channel.")
-async def embed_video(interaction: discord.Interaction, message: str, url: str):
-    await interaction.response.defer()
-    
-    video = Video(url)
-    filename = None
-
-    try:
-        filename = video.download()
-        if not filename:
-            await interaction.followup.send("Error: Video is too large to upload after compression.")
-            return
-    except Exception as e:
-        await interaction.followup.send(f"Error downloading video: {e}")
-        return
-
-    # Upload the video if it exists
-    if os.path.exists(filename):
-        video_file = discord.File(filename)
-        await interaction.channel.send(content=message, file=video_file)
-        
-        # Clean up the file after upload
-        os.remove(filename)
-    else:
-        await interaction.followup.send("Error: Downloaded file not found.")
-
 # this is primarily what handles the debugging messages that get sent to the channel
 @client.event
 async def on_error(event, *args, **kwargs):

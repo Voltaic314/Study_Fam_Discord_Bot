@@ -19,13 +19,7 @@ def get_current_date_string() -> str:
 
     Returns: date string in mm/dd/yyyy format
     '''
-    # Get the current date and time
-    current_datetime = datetime.now()
-    
-    # Format the date as a string (e.g., "MM-DD-YYYY")
-    date_string = current_datetime.strftime("%m-%d-%Y")
-    
-    return date_string
+    return datetime.now().strftime("%m-%d-%Y")
 
 
 def is_website_up(url: str) -> bool:

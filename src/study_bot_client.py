@@ -41,7 +41,6 @@ class Study_Bot_Client(discord.Client):
         self.user_id = discord_bot_credentials["Client_ID"]
         self.Focus_Role_int = discord_bot_credentials["Focus_Role_ID"]
         self.guild = self.get_guild(self.server_id)
-        self.example = 'example'
 
     async def get_activity_object(self) -> object:
         # setup the advice variables and set the daily status to whatever the advice is
@@ -824,7 +823,7 @@ async def embed_video(interaction: discord.Interaction, message: str, url: str):
     try:
         filename = video.download()
         if not filename:
-            await interaction.followup.send("Error: Video is too large to upload after compression.")
+            await interaction.followup.send("Error: Video is too large to upload even after compression.")
             return
     except Exception as e:
         await interaction.followup.send(f"Error downloading video: {e}")

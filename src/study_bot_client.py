@@ -814,7 +814,7 @@ async def long_term_reminder(interaction: discord.Interaction, date: str, time: 
 
 
 @tree.command(name="embed_video", description="Embeds a video from a URL into the channel.")
-async def embed_video(interaction: discord.Interaction, url: str, message: str = ''):
+async def embed_video(interaction: discord.Interaction, url: str, message: str = '', audio_only: bool = False):
     await interaction.response.defer()
     
     msg_to_send = f"Posted by {interaction.user.mention}\n"
@@ -828,7 +828,10 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
     filename = None
 
     try:
-        filename = video.download()
+        if audio_only:
+            filename = video.download_audio()
+        else:
+            filename = video.download()
         if not filename:
             await interaction.followup.send("Error: Video is too large to upload even after compression.")
             return

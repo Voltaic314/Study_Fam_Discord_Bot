@@ -30,6 +30,30 @@ class Video:
             self.filename = f"downloaded_video.{info_dict.get('ext', 'mp4')}"
             self.filesize = info_dict.get("filesize", 0) / (1024 * 1024)  # Convert bytes to MB
 
+    def download_audio(self):
+        """Downloads and compresses the audio if necessary before returning the file path."""
+        ydl_opts = {
+            "format": "bestaudio/best",
+            "outtmpl": self.filename,
+            "quiet": True,
+            "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}],
+        }
+        
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([self.url])
+            
+            if os.path.getsize(self.filename) / (1024 * 1024) > self.MAX_FILE_SIZE_MB:
+                print("Downloaded file is too large, compressing...")
+                os.remove(self.filename)
+                print("file is too large. Deleting...")
+                return None
+            
+            return self.filename
+        except Exception as e:
+            print(f"Error downloading audio: {e}")
+            return None  # Handle failure gracefully
+
     def download(self):
         """Downloads and compresses the media if necessary before returning the file path."""
         if self.filesize and self.filesize > self.MAX_FILE_SIZE_MB:

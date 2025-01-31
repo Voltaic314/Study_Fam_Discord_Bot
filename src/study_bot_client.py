@@ -828,10 +828,7 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
     filename = None
 
     try:
-        if audio_only:
-            filename = video.download_audio()
-        else:
-            filename = video.download()
+        filename = video.download()
         if not filename:
             await interaction.followup.send("Error: Video is too large to upload even after compression.")
             return

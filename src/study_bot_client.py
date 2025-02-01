@@ -1,6 +1,7 @@
 import asyncio
 import os
 import sys
+import json
 import random
 import traceback
 
@@ -14,6 +15,7 @@ from advice import Advice
 from discord_utility_functions import *
 from database import Database
 from file_processing import File_Processing
+from response_handler import Response, Warning, Error
 
 
 
@@ -828,10 +830,11 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
     filename = None
 
     try:
-        filename = video.download()
-        if not filename:
-            await interaction.followup.send("Error: Video is too large to upload even after compression.")
+        download_response = video.download()
+        if not download_response.success:
+            await interaction.followup.send(f"Error downloading video: {json.dumps(download_response.to_dict(), indent=4)}")
             return
+        filename = download_response.response # this returns the filename in the response
     except Exception as e:
         await interaction.followup.send(f"Error downloading video: {e}")
         return
@@ -843,7 +846,7 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
         await interaction.delete_original_response()
         
         # Clean up the file after upload
-        os.remove(filename)
+        video.delete_file()
     else:
         await interaction.followup.send("Error: Downloaded file not found.")
 

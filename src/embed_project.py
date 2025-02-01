@@ -1,6 +1,8 @@
 import yt_dlp
 import subprocess
 import os
+from response_handler import Response, Warning, Error
+
 
 class Video:
     """A class to download and compress videos."""
@@ -45,29 +47,34 @@ class Video:
             
             if os.path.getsize(self.filename) / (1024 * 1024) > self.MAX_FILE_SIZE_MB:
                 print("Downloaded file is too large, compressing...")
-                os.remove(self.filename)
+                self.delete_file()
                 print("file is too large. Deleting...")
-                return None
+                error = Error(
+                    error_type="FileTooLarge",
+                    message="File is too large. Please try again with a smaller file."
+                )
+                response = Response(success=False)
+                response.add_error(error)
+                return response
             
-            return self.filename
+            return Response(success=True, response=self.filename)
+        
         except Exception as e:
             print(f"Error downloading audio: {e}")
-            return None  # Handle failure gracefully
+            error = Error(
+                error_type="DownloadError",
+                message="An error occurred while downloading the audio.",
+                details=str(e)
+            )
+            response = Response(success=False)
+            response.add_error(error)
+            return response
 
     def download(self):
         """Downloads and compresses the media if necessary before returning the file path."""
-        if self.filesize and self.filesize > self.MAX_FILE_SIZE_MB:
-            print("File is too large, attempting compression...")
-            compressed_filename = self.compress()
-            if os.path.getsize(compressed_filename) / (1024 * 1024) > self.MAX_FILE_SIZE_MB:
-                os.remove(compressed_filename)
-                print("Compressed file is still too large. Deleting...")
-                return None
-            return compressed_filename
-        
         ydl_opts = {
-            "format": "bestvideo+bestaudio/best",
-            "outtmpl": self.filename,
+            "format": "bestvideo+bestaudio/best", 
+            "outtmpl": f"{self.filename}.mp4" if not self.filename.endswith(".mp4") else self.filename,
             "quiet": True,
             "merge_output_format": "mp4",
         }
@@ -76,40 +83,87 @@ class Video:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([self.url])
             
-            if os.path.getsize(self.filename) / (1024 * 1024) > self.MAX_FILE_SIZE_MB:
+            if self.filesize > self.MAX_FILE_SIZE_MB:
                 print("Downloaded file is too large, compressing...")
-                compressed_filename = self.compress()
-                os.remove(self.filename)
-                if os.path.getsize(compressed_filename) / (1024 * 1024) > self.MAX_FILE_SIZE_MB:
-                    os.remove(compressed_filename)
+                compressed_response = self.compress()
+                if self.filesize > self.MAX_FILE_SIZE_MB:
+                    self.delete_file()
                     print("Compressed file is still too large. Deleting...")
-                    return None
-                return compressed_filename
+                    error = Error(
+                        error_type="FileTooLarge",
+                        message="File is too large. Please try again with a smaller file."
+                    )
+                    response = Response(success=False)
+                    response.add_error(error)
+                    return response
+                return compressed_response
             
-            return self.filename
+            # Check if we need to convert
+            if not self._is_h264():
+                print("Downloaded video is NOT H.264! Converting...")
+                self.filename = self._convert_to_h264()
+            
+            return Response(success=True, response=self.filename)
         except Exception as e:
             print(f"Error downloading video: {e}")
-            return None  # Handle failure gracefully
+            error = Error(
+                error_type="DownloadError",
+                message="An error occurred while downloading the video.",
+                details=str(e)
+            )
+            response = Response(success=False)
+            response.add_error(error)
+            return response
+        
+    def _is_h264(self):
+        """Checks if the downloaded video is already H.264."""
+        codec_info = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name", "-of", "csv=p=0", self.filename],
+            capture_output=True, text=True
+        ).stdout.strip()
+        
+        return codec_info == "h264"
+    
+    def _convert_to_h264(self):
+        """Converts the video to H.264 using ffmpeg."""
+        output_file = f"Converted_{self.filename.replace('.mp4', '')}.mp4"
+        
+        command = [
+            "ffmpeg", "-i", self.filename,
+            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+            "-c:a", "aac", "-strict", "-2",
+            output_file
+        ]
+        
+        subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        os.remove(self.filename)
+        os.rename(output_file, self.filename)
+
+        return output_file
     
     def compress(self, target_bitrate="1M"):
         """Compresses the media using ffmpeg and returns the new file path."""
         if not os.path.exists(self.filename):
             raise FileNotFoundError("Downloaded media not found.")
         
-        output_filename = f"compressed_{self.filename}"
+        output_filename = f"Compressed_{self.filename.replace('.mp4', '')}.mp4"
         
         command = [
-            "ffmpeg", "-i", self.filename, "-b:v", target_bitrate, "-c:a", "aac", "-strict", "-2", output_filename
+            "ffmpeg", "-i", self.filename,
+            "-c:v", "libx264", "-b:v", target_bitrate,  # Convert AV1 → H.264
+            "-c:a", "aac", "-strict", "-2",
+            output_filename
         ]
         
         subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return output_filename
+        os.remove(self.filename)
+        os.rename(output_filename, self.filename)
+        file_size = os.path.getsize(self.filename) / (1024 * 1024)
+        self.filesize = file_size
+        return Response(success=True)
     
-    def delete_file(self, compressed=False):
+    def delete_file(self):
         """Deletes the downloaded and/or compressed video file."""
         if os.path.exists(self.filename):
             os.remove(self.filename)
-        
-        compressed_filename = f"compressed_{self.filename}"
-        if compressed and os.path.exists(compressed_filename):
-            os.remove(compressed_filename)
+

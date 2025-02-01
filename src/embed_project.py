@@ -49,25 +49,23 @@ class Video:
                 print("Downloaded file is too large, compressing...")
                 self.delete_file()
                 print("file is too large. Deleting...")
-                error = Error(
+                response = Response(success=False)
+                response.add_error(
                     error_type="FileTooLarge",
                     message="File is too large. Please try again with a smaller file."
                 )
-                response = Response(success=False)
-                response.add_error(error)
                 return response
             
             return Response(success=True, response=self.filename)
         
         except Exception as e:
             print(f"Error downloading audio: {e}")
-            error = Error(
+            response = Response(success=False)
+            response.add_error(
                 error_type="DownloadError",
                 message="An error occurred while downloading the audio.",
                 details=str(e)
             )
-            response = Response(success=False)
-            response.add_error(error)
             return response
 
     def download(self):
@@ -89,12 +87,11 @@ class Video:
                 if self.filesize > self.MAX_FILE_SIZE_MB:
                     self.delete_file()
                     print("Compressed file is still too large. Deleting...")
-                    error = Error(
+                    response = Response(success=False)
+                    response.add_error(
                         error_type="FileTooLarge",
                         message="File is too large. Please try again with a smaller file."
                     )
-                    response = Response(success=False)
-                    response.add_error(error)
                     return response
                 return compressed_response
             
@@ -106,13 +103,12 @@ class Video:
             return Response(success=True, response=self.filename)
         except Exception as e:
             print(f"Error downloading video: {e}")
-            error = Error(
+            response = Response(success=False)
+            response.add_error(
                 error_type="DownloadError",
                 message="An error occurred while downloading the video.",
                 details=str(e)
             )
-            response = Response(success=False)
-            response.add_error(error)
             return response
         
     def _is_h264(self):

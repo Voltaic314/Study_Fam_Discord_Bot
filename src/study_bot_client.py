@@ -10,7 +10,7 @@ import discord
 from config import *
 from text_processing import Text_Processing
 from time_modulation import Time_Stuff
-from video_processing import Video
+from video_processing import YT_Video
 from advice import Advice
 from discord_utility_functions import *
 from database import Database
@@ -276,7 +276,7 @@ class Study_Bot_Client(discord.Client):
             # note that if the bot does this route, it will send the ping in the thread instead.
             if message_was_yt_content:
                 video_link = Text_Processing.extract_video_url(message.content)
-                video = Video(url=video_link)
+                video = YT_Video(url=video_link)
                 if not video.is_watchable:
                     # do nothing
                     return
@@ -289,7 +289,7 @@ class Study_Bot_Client(discord.Client):
                 await current_channel.send(message_to_send)
 
     @staticmethod
-    async def YT_Video_Transcriptions(message: discord.Message, message_to_send: str, video: Video) -> bool:
+    async def YT_Video_Transcriptions(message: discord.Message, message_to_send: str, video: YT_Video) -> bool:
         '''
         This function will parse through a message object to get the YT URL, then
         transcribe that YT video to a txt file, and post that following info to a 
@@ -849,6 +849,42 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
         video.delete_file()
     else:
         await interaction.followup.send("Error: Downloaded file not found.")
+
+
+@tree.command(name="embed_images", description="Embeds an image from a URL into the channel.")
+async def embed_image(interaction: discord.Interaction, url: str, message: str = ''):
+    await interaction.response.defer()
+    
+    msg_to_send = f"Posted by {interaction.user.mention}\n"
+
+    if message:
+        msg_to_send += f"Caption: {message}\n"
+    
+    msg_to_send += f"Source: <{url}>"
+
+    images = Images(url)
+
+    try:
+        download_response = images.download()
+
+        if not any([dr.success for dr in download_response]):
+            responses_as_dicts = [dr.to_dict() for dr in download_response]
+            output_printable_string = json.dumps(responses_as_dicts, indent=4)
+            await interaction.followup.send(f"Error downloading image(s): {output_printable_string}")
+            return
+
+    except Exception as e:
+        await interaction.followup.send(f"Error downloading image(s): {e}")
+        return
+
+    # Upload the images if they exist
+    image_files = [discord.File(f.response) for f in download_response if f.success]
+
+    await interaction.channel.send(content=msg_to_send, files=image_files)
+    await interaction.delete_original_response()
+    
+    # Clean up the files after upload
+    images.delete_all()
 
 
 # this is primarily what handles the debugging messages that get sent to the channel

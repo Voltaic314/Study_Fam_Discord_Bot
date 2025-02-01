@@ -5,7 +5,7 @@ This module holds the dr k notification message class object.
 Primarily this comes from carl bot's alert.
 '''
 from text_processing import Text_Processing
-from video_processing import Video
+from video_processing import YT_Video
 
 class ContentNotification:
 
@@ -32,7 +32,7 @@ class ContentNotification:
     def video(self):
         if self.is_content_alert:
             video_url = Text_Processing.extract_video_url(self.message_contents)
-            return Video(url=video_url)
+            return YT_Video(url=video_url)
     
     @property
     def is_twitch_stream(self):

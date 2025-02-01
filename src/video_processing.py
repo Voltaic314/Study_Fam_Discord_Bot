@@ -12,7 +12,7 @@ from text_processing import Text_Processing
 from file_processing import File_Processing
 
 
-class Video(YouTube):
+class YT_Video(YouTube):
 
     def __init__(self, url) -> None:
         super().__init__(url)
@@ -154,6 +154,6 @@ class Video(YouTube):
 if __name__ == '__main__':
     example_video_link = "https://www.youtube.com/watch?v=uBiCK84EW38"
     live_video_link = "https://youtu.be/WGeigBA-kmk "
-    video = Video(url=live_video_link)
+    video = YT_Video(url=live_video_link)
     print(video.is_watchable)
     print(video.is_livestream)

@@ -54,7 +54,7 @@ class Response:
         self.warnings: List[Warning] = []  # List of WarningDetail objects
         self.timestamp = datetime.now()
 
-    def add_error(self, error_type: str, message: str, details: str, metadata: dict = None):
+    def add_error(self, error_type: str, message: str, details: str = None, metadata: dict = None):
         """
         Add an error to the response.
 

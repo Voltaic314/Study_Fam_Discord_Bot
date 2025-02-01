@@ -54,17 +54,17 @@ class Response:
         self.warnings: List[Warning] = []  # List of WarningDetail objects
         self.timestamp = datetime.now()
 
-    def add_error(self, error_type: str, message: str, code: int = None, metadata: dict = None):
+    def add_error(self, error_type: str, message: str, details: str, metadata: dict = None):
         """
         Add an error to the response.
 
         Args:
             error_type (str): Type of the error (e.g., 'PermissionError').
             message (str): Human-readable error message.
-            code (int): Optional error code (e.g., HTTP status).
+            details (str): Error message for developers / computers.
             metadata (dict): Additional metadata for debugging.
         """
-        error = Error(error_type, message, code, metadata)
+        error = Error(error_type, message, details, metadata)
         if error not in self.errors:
             self.errors.append(error)
 

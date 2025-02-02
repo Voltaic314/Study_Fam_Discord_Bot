@@ -81,15 +81,26 @@ class Images:
         self._extract_metadata()
     
     def _extract_metadata(self):
-        """Extracts metadata and initializes Image objects."""
+        """Extracts metadata and initializes Image objects with session cookies if available."""
         try:
+
+            # Load `gallery-dl` configuration
             gallery_dl.config.load()
 
-            # Create a job to process the URL and extract images
+            # Now create the job AFTER configuring cookies
             job = gallery_dl.job.DownloadJob(self.url)
 
-            # Process the job and store image details
-            for index, entry in enumerate(job.extractor.items()):
+            # Extract metadata
+            entries = job.extractor.items()
+            if not entries:
+                response = Response(success=False)
+                response.add_error(
+                    error_type="MetadataError",
+                    message="No images found in the URL."
+                )
+                return response
+            
+            for index, entry in enumerate(entries):
                 ext = entry.get('extension', 'jpg')  # Extract extension safely
                 filename = f"downloaded_image_{index}.{ext}"
                 filesize = entry.get("filesize", 0) / (1024 * 1024)  # Convert bytes to MB
@@ -103,7 +114,7 @@ class Images:
                 details=str(e)
             )
             return response
-    
+        
     def download(self):
         """Downloads all images in the list."""
         responses = []

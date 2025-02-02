@@ -851,40 +851,40 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
         await interaction.followup.send("Error: Downloaded file not found.")
 
 
-@tree.command(name="embed_images", description="Embeds an image from a URL into the channel.")
-async def embed_image(interaction: discord.Interaction, url: str, message: str = ''):
-    await interaction.response.defer()
+# @tree.command(name="embed_images", description="Embeds an image from a URL into the channel.")
+# async def embed_image(interaction: discord.Interaction, url: str, message: str = ''):
+#     await interaction.response.defer()
     
-    msg_to_send = f"Posted by {interaction.user.mention}\n"
+#     msg_to_send = f"Posted by {interaction.user.mention}\n"
 
-    if message:
-        msg_to_send += f"Caption: {message}\n"
+#     if message:
+#         msg_to_send += f"Caption: {message}\n"
     
-    msg_to_send += f"Source: <{url}>"
+#     msg_to_send += f"Source: <{url}>"
 
-    images = Images(url)
+#     images = Images(url)
 
-    try:
-        download_response = images.download()
+#     try:
+#         download_response = images.download()
 
-        if not any([dr.success for dr in download_response]):
-            responses_as_dicts = [dr.to_dict() for dr in download_response]
-            output_printable_string = json.dumps(responses_as_dicts, indent=4)
-            await interaction.followup.send(f"Error downloading image(s): {output_printable_string}")
-            return
+#         if not any([dr.success for dr in download_response]):
+#             responses_as_dicts = [dr.to_dict() for dr in download_response]
+#             output_printable_string = json.dumps(responses_as_dicts, indent=4)
+#             await interaction.followup.send(f"Error downloading image(s): {output_printable_string}")
+#             return
 
-    except Exception as e:
-        await interaction.followup.send(f"Error downloading image(s): {e}")
-        return
+#     except Exception as e:
+#         await interaction.followup.send(f"Error downloading image(s): {e}")
+#         return
 
-    # Upload the images if they exist
-    image_files = [discord.File(f.response) for f in download_response if f.success]
+#     # Upload the images if they exist
+#     image_files = [discord.File(f.response) for f in download_response if f.success]
 
-    await interaction.channel.send(content=msg_to_send, files=image_files)
-    await interaction.delete_original_response()
+#     await interaction.channel.send(content=msg_to_send, files=image_files)
+#     await interaction.delete_original_response()
     
-    # Clean up the files after upload
-    images.delete_all()
+#     # Clean up the files after upload
+#     images.delete_all()
 
 
 # this is primarily what handles the debugging messages that get sent to the channel

@@ -830,7 +830,8 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
     filename = None
 
     try:
-        download_response = video.download()
+        # download vids in a non blocking way to prevent discord heartbeat timeouts
+        download_response = await asyncio.to_thread(video.download)
         if not download_response.success:
             await interaction.followup.send(f"Error downloading video: {json.dumps(download_response.to_dict(), indent=4)}")
             return
@@ -840,13 +841,13 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
         return
 
     # Upload the video if it exists
-    if os.path.exists(filename):
+    if video.exists_locally():
         video_file = discord.File(filename)
         await interaction.channel.send(content=msg_to_send, file=video_file)
         await interaction.delete_original_response()
         
         # Clean up the file after upload
-        video.delete_file()
+        await asyncio.to_thread(video.delete_file)
     else:
         await interaction.followup.send("Error: Downloaded file not found.")
 

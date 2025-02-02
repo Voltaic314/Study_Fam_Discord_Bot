@@ -131,19 +131,19 @@ class Video:
                 return response
             
             if self.filesize > self.MAX_FILE_SIZE_MB:
-                print("Downloaded file is too large, compressing...")
-                compressed_response = self.compress()
-                if self.filesize > self.MAX_FILE_SIZE_MB:
-                    self.delete_file()
-                    print("Compressed file is still too large. Deleting...")
+                if (self.filesize * 0.85) > self.MAX_FILE_SIZE_MB:
                     response = Response(success=False)
                     response.add_error(
                         error_type="FileTooLarge",
                         message="File is too large. Please try again with a smaller file."
                     )
                     return response
-                return compressed_response
-            
+
+                print("Downloaded file is too large, compressing...")
+                compressed_response = self.compress()
+                if not compressed_response.success:
+                    return compressed_response
+
             # Check if we need to convert
             if not self._is_h264():
                 print("Downloaded video is NOT H.264! Converting...")

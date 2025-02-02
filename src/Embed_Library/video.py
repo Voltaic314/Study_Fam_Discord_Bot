@@ -159,7 +159,8 @@ class Video:
     def download(self):
         """Downloads and compresses the media if necessary before returning the file path."""
         
-        if not self.is_video().response:
+        is_video_response = self.is_video()
+        if not is_video_response.response:
             response = Response(success=False)
             response.add_error(
                 error_type="NotVideoError",
@@ -216,11 +217,12 @@ class Video:
                         return response
 
             # Check if we need to convert
-            if not self._is_h264():
+            is_h264_response = self._is_h264()
+            if not is_h264_response.response:
                 print("Downloaded video is NOT H.264! Converting...")
-                self.filename = self._convert_to_h264()
+                response = self._convert_to_h264()
             
-            return Response(success=True, response=self.filename)
+            return response if response else Response(success=True, response=self.filename)
         except Exception as e:
             print(f"Error downloading video: {e}")
             response = Response(success=False)
@@ -260,7 +262,7 @@ class Video:
         self.delete_file()
         os.rename(output_file, self.filename)
 
-        return output_file
+        return Response(success=True, response=self.filename)
     
     def compress(self, target_bitrate="1M"):
         """Compresses the media using ffmpeg and returns the new file path."""

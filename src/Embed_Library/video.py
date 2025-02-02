@@ -124,14 +124,13 @@ class Video:
             )
             return response
         
-    def adjust_resolution(self, target_height=720):
-        """Scales the video resolution down while maintaining aspect ratio using ffmpeg-python."""
+    def adjust_resolution(self, target_height=720, target_bitrate="800k"):
+        """Scales the video resolution down while maintaining aspect ratio and reducing bitrate."""
         if not os.path.exists(self.filename):
             raise FileNotFoundError("Downloaded video not found.")
 
         resolution = self.get_video_resolution()
         if not resolution or resolution[1] <= target_height:
-            print(f"Video resolution is already small enough: {resolution}")
             return self.filename  # No need to scale if already small enough
 
         output_filename = f"Resized_{self.filename}"
@@ -140,21 +139,21 @@ class Video:
             (
                 ffmpeg
                 .input(self.filename)
-                .filter("scale", -2, target_height)  # Auto-scale width to maintain aspect ratio
-                .output(output_filename, vcodec="libx264", preset="fast", acodec="aac")
+                .filter("scale", -2, target_height)  # Auto-scale width
+                .output(output_filename, vcodec="libx264", preset="fast", acodec="aac", bitrate=target_bitrate)
                 .run(quiet=True, overwrite_output=True)
             )
 
             self.delete_file()
             os.rename(output_filename, self.filename)
-            # Adjust the file size of the new probed video
-            self.filesize = os.path.getsize(self.filename) / (1024 * 1024)
+
+            # Debug: Print new resolution & file size
+            new_resolution = self.get_video_resolution()
+            print(f"New resolution after scaling: {new_resolution}")
+            print(f"New file size after scaling: {self.get_os_filesize()} MB")
+
         except Exception as e:
             print(f"Error resizing video: {e}")
-
-        new_resolution = self.get_video_resolution()
-        print(f"New resolution after scaling: {new_resolution}")
-        print(f"New file size after scaling: {self.get_os_filesize()} MB")
         
         return self.filename
 

@@ -845,14 +845,14 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
     if video.exists_locally():
         if not video.get_os_filesize() <= client.max_file_size_mb:
             await interaction.followup.send("Error: Video file is too large.")
-            await asyncio.to_thread(video.delete_file)
+            video.delete_file()
             return
         video_file = discord.File(filename)
         await interaction.channel.send(content=msg_to_send, file=video_file)
         await interaction.delete_original_response()
         
         # Clean up the file after upload
-        await asyncio.to_thread(video.delete_file)
+        video.delete_file()
     else:
         await interaction.followup.send("Error: Downloaded file not found.")
 

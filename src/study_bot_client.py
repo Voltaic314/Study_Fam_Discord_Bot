@@ -36,7 +36,6 @@ class Study_Bot_Client(discord.Client):
 
         # we use this so the bot doesn't sync commands more than once
         self.synced = False
-        self.max_file_size_mb = 25  # Discord file size limit
 
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
         self.SELF_CARE_CHANNEL_ID = discord_bot_credentials["Self_Care_Channel_ID"]
@@ -819,6 +818,7 @@ async def long_term_reminder(interaction: discord.Interaction, date: str, time: 
 @tree.command(name="embed_video", description="Embeds a video from a URL into the channel.")
 async def embed_video(interaction: discord.Interaction, url: str, message: str = '', audio_only: bool = False):
     await interaction.response.defer()
+    max_file_size_mb = interaction.guild.filesize_limit / (1024 * 1024)
     
     msg_to_send = f"Posted by {interaction.user.mention}\n"
 
@@ -827,7 +827,7 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
     
     msg_to_send += f"Source: <{url}>"
 
-    video = Video(url, MAX_FILE_SIZE_MB=client.max_file_size_mb)
+    video = Video(url, MAX_FILE_SIZE_MB=max_file_size_mb)
     filename = None
 
     try:
@@ -843,7 +843,7 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
 
     # Upload the video if it exists
     if video.exists_locally():
-        if not video.get_os_filesize() <= client.max_file_size_mb:
+        if not video.get_os_filesize() <= max_file_size_mb:
             await interaction.followup.send("Error: Video file is too large.")
             video.delete_file()
             return

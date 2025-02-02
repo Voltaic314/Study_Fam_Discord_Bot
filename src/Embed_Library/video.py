@@ -2,22 +2,27 @@ import yt_dlp
 import subprocess
 import os
 import json
+import ffmpeg
 from response_handler import Response
 
 
 class Video:
     """A class to download and compress videos."""
     
-    MAX_FILE_SIZE_MB = 25  # Discord file size limit
 
-    def __init__(self, url):
+    def __init__(self, url, MAX_FILE_SIZE_MB=25):
         self.url = url
         self.title = None
         self.duration = None
         self.uploader = None
         self.site = None
         self.filename = None
+        self.MAX_FILE_SIZE_MB = MAX_FILE_SIZE_MB
         self._extract_metadata()
+
+    def get_os_filesize(self):
+        """Returns the file size of the video in MB."""
+        return os.path.getsize(self.filename) / (1024 * 1024) if self.exists_locally() else 0.0
 
     def _extract_metadata(self):
         """Extracts metadata for any supported video link without downloading."""
@@ -54,6 +59,25 @@ class Video:
                 message="An error occurred while checking the video"
             )
             return response
+
+    def get_video_resolution(self):
+        """Extracts the resolution of the downloaded video file using ffmpeg-python."""
+        if not os.path.exists(self.filename):
+            return None
+
+        try:
+            probe = ffmpeg.probe(self.filename)
+            video_streams = [stream for stream in probe["streams"] if stream["codec_type"] == "video"]
+            
+            if not video_streams:
+                return None
+            
+            width = int(video_streams[0]["width"])
+            height = int(video_streams[0]["height"])
+            return width, height
+        except Exception as e:
+            print(f"Error probing video: {e}")
+            return None
 
     def download_audio(self):
         """Downloads and compresses the audio if necessary before returning the file path."""
@@ -99,6 +123,40 @@ class Video:
                 details=str(e)
             )
             return response
+        
+    def adjust_resolution(self, target_height=720):
+        """Scales the video resolution down while maintaining aspect ratio using ffmpeg-python."""
+        if not os.path.exists(self.filename):
+            raise FileNotFoundError("Downloaded video not found.")
+
+        resolution = self.get_video_resolution()
+        if not resolution or resolution[1] <= target_height:
+            print(f"Video resolution is already small enough: {resolution}")
+            return self.filename  # No need to scale if already small enough
+
+        output_filename = f"Resized_{self.filename}"
+
+        try:
+            (
+                ffmpeg
+                .input(self.filename)
+                .filter("scale", -2, target_height)  # Auto-scale width to maintain aspect ratio
+                .output(output_filename, vcodec="libx264", preset="fast", acodec="aac")
+                .run(quiet=True, overwrite_output=True)
+            )
+
+            self.delete_file()
+            os.rename(output_filename, self.filename)
+            # Adjust the file size of the new probed video
+            self.filesize = os.path.getsize(self.filename) / (1024 * 1024)
+        except Exception as e:
+            print(f"Error resizing video: {e}")
+
+        new_resolution = self.get_video_resolution()
+        print(f"New resolution after scaling: {new_resolution}")
+        print(f"New file size after scaling: {self.get_os_filesize()} MB")
+        
+        return self.filename
 
     def download(self):
         """Downloads and compresses the media if necessary before returning the file path."""
@@ -110,14 +168,14 @@ class Video:
                 message="The provided URL is not a video."
             )
             return response
-
+        
         ydl_opts = {
-            "format": "bestvideo+bestaudio/best", 
+            "format": "bestvideo+bestaudio/best",
             "outtmpl": f"{self.filename}.mp4" if not self.filename.endswith(".mp4") else self.filename,
             "quiet": True,
             "merge_output_format": "mp4",
         }
-        
+
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([self.url])
@@ -129,20 +187,35 @@ class Video:
                     message="An error occurred while downloading the video."
                 )
                 return response
-            
-            if self.filesize > self.MAX_FILE_SIZE_MB:
-                if (self.filesize * 0.85) > self.MAX_FILE_SIZE_MB:
-                    response = Response(success=False)
-                    response.add_error(
-                        error_type="FileTooLarge",
-                        message="File is too large. Please try again with a smaller file."
-                    )
-                    return response
 
-                print("Downloaded file is too large, compressing...")
-                compressed_response = self.compress()
-                if not compressed_response.success:
-                    return compressed_response
+            if not self.exists_locally():
+                response = Response(success=False)
+                response.add_error(
+                    error_type="DownloadError",
+                    message="An error occurred while downloading the video."
+                )
+                return response
+
+            file_size = self.get_os_filesize()
+            if file_size and file_size > self.MAX_FILE_SIZE_MB:
+                print(f"Video is too large. Current size: {file_size}. Attempting to scale down resolution...")
+                self.adjust_resolution(target_height=720)
+                file_size = self.get_os_filesize()
+                if file_size > self.MAX_FILE_SIZE_MB:
+                    print(f"Video is still too large. Current size: {file_size}. Compressing...")
+                    compressed_response = self.compress()
+                    if not compressed_response.success:
+                        return compressed_response
+                    file_size = self.get_os_filesize()
+                    if file_size > self.MAX_FILE_SIZE_MB:
+                        print(f"Video is still too large. Current size: {file_size}. Deleting...")
+                        self.delete_file()
+                        response = Response(success=False)
+                        response.add_error(
+                            error_type="FileTooLarge",
+                            message=f"File is too large. Current size: {file_size}. Please try again with a smaller file."
+                        )
+                        return response
 
             # Check if we need to convert
             if not self._is_h264():

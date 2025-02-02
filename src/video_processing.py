@@ -80,7 +80,8 @@ class YT_Video(YouTube):
         except pt_exceptions.UnknownVideoError:
             return True
         
-        except Exception:
+        except Exception as e:
+            print(f"An error occurred trying to determine if the video was watchable: \n{e}")
             return False # sometimes these exceptions are good to know which ones it is 
             # but frankly I am tired of messing with this so whatever. :) <3
             # bite me
@@ -118,7 +119,7 @@ class YT_Video(YouTube):
         '''
         try:
             yt = YouTube(self.url)
-            return yt.vid_info['videoDetails'].get('isLive', False)
+            return yt.vid_info.get("videoDetails", {}).get('isLive', False)
         except pt_exceptions.VideoUnavailable:
             print("The video is unavailable.")
             return False

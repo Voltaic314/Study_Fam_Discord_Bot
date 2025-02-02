@@ -1,8 +1,7 @@
-import yt_dlp
-import subprocess
 import os
 import json
 import ffmpeg
+import yt_dlp
 from response_handler import Response
 
 
@@ -235,10 +234,8 @@ class Video:
     def _is_h264(self):
         """Checks if the downloaded video is already H.264."""
         try:
-            codec_info = subprocess.run(
-                ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name", "-of", "csv=p=0", self.filename],
-                capture_output=True, text=True
-            ).stdout.strip()
+            probe = ffmpeg.probe(self.filename)
+            codec_info = next((stream['codec_name'] for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
             return Response(success=True, response=codec_info == "h264")
         
         except Exception as e: 
@@ -254,14 +251,12 @@ class Video:
         """Converts the video to H.264 using ffmpeg."""
         output_file = f"Converted_{self.filename.replace('.mp4', '')}.mp4"
         
-        command = [
-            "ffmpeg", "-i", self.filename,
-            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-            "-c:a", "aac", "-strict", "-2",
-            output_file
-        ]
-        
-        subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        (
+            ffmpeg
+            .input(self.filename)
+            .output(output_file, vcodec="libx264", preset="fast", crf=23, acodec="aac", strict="experimental")
+            .run(quiet=True, overwrite_output=True)
+        )
         self.delete_file()
         os.rename(output_file, self.filename)
 
@@ -274,14 +269,12 @@ class Video:
         
         output_filename = f"Compressed_{self.filename.replace('.mp4', '')}.mp4"
         
-        command = [
-            "ffmpeg", "-i", self.filename,
-            "-c:v", "libx264", "-b:v", target_bitrate,  # Convert AV1 → H.264
-            "-c:a", "aac", "-strict", "-2",
-            output_filename
-        ]
-        
-        subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        (
+            ffmpeg
+            .input(self.filename)
+            .output(output_filename, vcodec="libx264", bitrate=target_bitrate, acodec="aac", strict="experimental")
+            .run(quiet=True, overwrite_output=True)
+        )
         self.delete_file()
         os.rename(output_filename, self.filename)
         file_size = os.path.getsize(self.filename) / (1024 * 1024)

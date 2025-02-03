@@ -2,6 +2,7 @@ import os
 import json
 import ffmpeg
 import yt_dlp
+import subprocess
 from response_handler import Response
 
 
@@ -253,12 +254,14 @@ class Video:
         """Converts the video to H.264 using ffmpeg."""
         output_file = f"Converted_{self.filename.replace('.mp4', '')}.mp4"
         
-        (
-            ffmpeg
-            .input(self.filename)
-            .output(output_file, vcodec="libx264", preset="fast", crf=23, acodec="aac", strict="experimental")
-            .run(quiet=True, overwrite_output=True)
-        )
+        command = [
+            "ffmpeg", "-i", self.filename,
+            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+            "-c:a", "aac", "-strict", "-2",
+            output_file
+        ]
+        
+        subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.delete_file()
         os.rename(output_file, self.filename)
 
@@ -271,12 +274,14 @@ class Video:
         
         output_filename = f"Compressed_{self.filename.replace('.mp4', '')}.mp4"
         
-        (
-            ffmpeg
-            .input(self.filename)
-            .output(output_filename, vcodec="libx264", bitrate=target_bitrate, acodec="aac", strict="experimental")
-            .run(quiet=True, overwrite_output=True)
-        )
+        command = [
+            "ffmpeg", "-i", self.filename,
+            "-c:v", "libx264", "-b:v", target_bitrate,  # Convert AV1 → H.264
+            "-c:a", "aac", "-strict", "-2",
+            output_filename
+        ]
+        
+        subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.delete_file()
         os.rename(output_filename, self.filename)
         file_size = os.path.getsize(self.filename) / (1024 * 1024)

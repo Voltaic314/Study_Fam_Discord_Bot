@@ -3,6 +3,7 @@ import json
 import ffmpeg
 import yt_dlp
 import subprocess
+import uuid
 from response_handler import Response
 
 
@@ -11,6 +12,7 @@ class Video:
     
 
     def __init__(self, url, MAX_FILE_SIZE_MB=25):
+        self.id = uuid.uuid4().hex
         self.url = url
         self.title = None
         self.duration = None
@@ -35,7 +37,7 @@ class Video:
             self.duration = info_dict.get("duration")
             self.uploader = info_dict.get("uploader")
             self.site = info_dict.get("extractor_key")
-            self.filename = f"downloaded_video.{info_dict.get('ext', 'mp4')}"
+            self.filename = f"downloaded_video_{self.id}.{info_dict.get('ext', 'mp4')}"
             self.filesize = info_dict.get("filesize", 0) / (1024 * 1024)  # Convert bytes to MB
 
     def exists_locally(self):

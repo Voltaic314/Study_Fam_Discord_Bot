@@ -251,22 +251,27 @@ class Video:
             return response
             
     def _convert_to_h264(self):
-        """Converts the video to H.264 using optimized compression settings."""
+        """Converts the video to H.264 using subprocess with system-installed ffmpeg."""
         output_file = f"Converted_{self.filename.replace('.mp4', '')}.mp4"
 
         try:
-            (
-                ffmpeg
-                .input(self.filename)
-                .output(output_file, vcodec="libx264", preset="slow", crf=28, acodec="aac", audio_bitrate="96k")
-                .run(quiet=True, overwrite_output=True)
-            )
+            command = [
+                "ffmpeg", "-i", self.filename,    # Input file
+                "-c:v", "libx264", "-preset", "slow", "-crf", "28",  # H.264 encoding
+                "-c:a", "aac", "-b:a", "96k",  # AAC audio encoding
+                "-movflags", "+faststart",  # Optimize for web playback
+                output_file
+            ]
 
+            subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+
+            # Replace old file with converted file
             self.delete_file()
             os.rename(output_file, self.filename)
+
             return Response(success=True, response=self.filename)
 
-        except Exception as e:
+        except subprocess.CalledProcessError as e:
             response = Response(success=False)
             response.add_error(
                 error_type="H264ConversionError",

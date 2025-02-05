@@ -177,6 +177,7 @@ class Video:
         }
 
         try:
+            # Download video
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([self.url])
 
@@ -188,42 +189,41 @@ class Video:
                 )
                 return response
 
-            if not self.exists_locally():
-                response = Response(success=False)
-                response.add_error(
-                    error_type="DownloadError",
-                    message="An error occurred while downloading the video."
-                )
-                return response
-
-            file_size = self.get_os_filesize()
-            if file_size and file_size > self.MAX_FILE_SIZE_MB:
-                print(f"Video is too large. Current size: {file_size}. Attempting to scale down resolution...")
-                self.adjust_resolution(target_height=720)
-                file_size = self.get_os_filesize()
-                if file_size > self.MAX_FILE_SIZE_MB:
-                    print(f"Video is still too large. Current size: {file_size}. Compressing...")
-                    compressed_response = self.compress()
-                    if not compressed_response.success:
-                        return compressed_response
-                    file_size = self.get_os_filesize()
-                    if file_size > self.MAX_FILE_SIZE_MB:
-                        print(f"Video is still too large. Current size: {file_size}. Deleting...")
-                        self.delete_file()
-                        response = Response(success=False)
-                        response.add_error(
-                            error_type="FileTooLarge",
-                            message=f"File is too large. Current size: {file_size}. Please try again with a smaller file."
-                        )
-                        return response
-
-            # Check if we need to convert
+            # Step 1: Ensure H.264 Compatibility
             is_h264_response = self._is_h264()
             if not is_h264_response.response:
                 print("Downloaded video is NOT H.264! Converting...")
-                response = self._convert_to_h264()
-            
-            return response if response else Response(success=True, response=self.filename)
+                conversion_response = self._convert_to_h264()
+                if not conversion_response.success:
+                    return conversion_response  # Return failure if conversion failed
+
+            # Step 2: Check file size after conversion
+            file_size = self.get_os_filesize()
+            if file_size > self.MAX_FILE_SIZE_MB:
+                print(f"Video is too large. Current size: {file_size}. Attempting to scale down resolution...")
+                self.adjust_resolution(target_height=720)
+
+            # Step 3: Check file size again after scaling
+            file_size = self.get_os_filesize()
+            if file_size > self.MAX_FILE_SIZE_MB:
+                print(f"Video is still too large. Current size: {file_size}. Compressing...")
+                compressed_response = self.compress()
+                if not compressed_response.success:
+                    return compressed_response
+
+            # Final check: Ensure final file size is within limits
+            file_size = self.get_os_filesize()
+            if file_size > self.MAX_FILE_SIZE_MB:
+                print(f"Video is still too large. Current size: {file_size}. Deleting...")
+                self.delete_file()
+                response.add_error(
+                    error_type="FileTooLarge",
+                    message=f"File is too large. Current size: {file_size}. Please try again with a smaller file."
+                )
+                return response
+
+            return Response(success=True, response=self.filename)
+
         except Exception as e:
             print(f"Error downloading video: {e}")
             response = Response(success=False)
@@ -251,21 +251,29 @@ class Video:
             return response
             
     def _convert_to_h264(self):
-        """Converts the video to H.264 using ffmpeg."""
+        """Converts the video to H.264 using optimized compression settings."""
         output_file = f"Converted_{self.filename.replace('.mp4', '')}.mp4"
-        
-        command = [
-            "ffmpeg", "-i", self.filename,
-            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-            "-c:a", "aac", "-strict", "-2",
-            output_file
-        ]
-        
-        subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        self.delete_file()
-        os.rename(output_file, self.filename)
 
-        return Response(success=True, response=self.filename)
+        try:
+            (
+                ffmpeg
+                .input(self.filename)
+                .output(output_file, vcodec="libx264", preset="slow", crf=28, acodec="aac", audio_bitrate="96k")
+                .run(quiet=True, overwrite_output=True)
+            )
+
+            self.delete_file()
+            os.rename(output_file, self.filename)
+            return Response(success=True, response=self.filename)
+
+        except Exception as e:
+            response = Response(success=False)
+            response.add_error(
+                error_type="H264ConversionError",
+                message="An error occurred while converting to H.264.",
+                details=str(e)
+            )
+            return response
     
     def compress(self, target_bitrate="1M"):
         """Compresses the media using ffmpeg and returns the new file path."""

@@ -843,13 +843,15 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
 
     # Upload the video if it exists
     if video.exists_locally():
-        if not video.get_os_filesize() <= max_file_size_mb:
-            await interaction.followup.send("Error: Video file is too large.")
-            video.delete_file()
-            return
-        video_file = discord.File(filename)
-        await interaction.channel.send(content=msg_to_send, file=video_file)
-        await interaction.delete_original_response()
+        try:
+            video_file = discord.File(video.filename, filename=video.filename)
+            await interaction.channel.send(content=msg_to_send, file=video_file)
+            await interaction.delete_original_response()
+        except Exception as e:
+            if 'Request entity too large' in str(e):
+                await interaction.followup.send(f"Error: Video file is too large to upload.\nMax file size: {max_file_size_mb} MB \nFile size: {video.get_os_filesize()} MB")
+            else:
+                await interaction.followup.send(f"Error: {e}")
         
         # Clean up the file after upload
         video.delete_file()

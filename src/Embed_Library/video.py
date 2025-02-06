@@ -51,7 +51,7 @@ class Video:
                 info = ydl.extract_info(self.url, download=False)  # Get metadata only
 
                 # Check if there are video streams available
-                if "video" in info.get("categories", []) or info.get("vcodec", "none") != "none":
+                if "video" in info.get("categories", []) or info.get("vcodec", "none") != "none" or info.get("ext", "none") == "mp4":
                     return Response(success=True, response=True)
                 return Response(success=True, response=False)
         except Exception as e:

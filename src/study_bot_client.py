@@ -42,6 +42,7 @@ class Study_Bot_Client(discord.Client):
         self.server_id = discord_bot_credentials["Server_ID_for_Study_Fam"]
         self.user_id = discord_bot_credentials["Client_ID"]
         self.Focus_Role_int = discord_bot_credentials["Focus_Role_ID"]
+        self.logging_channel_id = discord_bot_credentials["Logging_Channel_ID"]
         self.guild = self.get_guild(self.server_id)
 
     async def get_activity_object(self) -> object:
@@ -834,11 +835,13 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
         # download vids in a non blocking way to prevent discord heartbeat timeouts
         download_response = await asyncio.to_thread(video.download)
         if not download_response.success:
-            await interaction.followup.send(f"Error downloading video: {json.dumps(download_response.to_dict(), indent=4)}")
+            await interaction.followup.send(f"{download_response.errors[0].message} -- Error Info: {download_response.errors[0].details}")
             return
         filename = download_response.response # this returns the filename in the response
     except Exception as e:
-        await interaction.followup.send(f"Error downloading video: {e}")
+        response = Response(success=False)
+        response.add_error(error_type="DownloadError", error_message="Unfortunately there was an error downloading the video.", details=str(e), metadata={"user_name": interaction.user.name, "user_id": interaction.user.id, "url": f"<{url}>", "channel_name": interaction.channel.name, "channel_id": interaction.channel.id})
+        await interaction.followup.send(f"{response.errors[0].message} -- Error Info: {response.errors[0].details}")
         return
 
     # Upload the video if it exists
@@ -848,15 +851,17 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
             await interaction.channel.send(content=msg_to_send, file=video_file)
             await interaction.delete_original_response()
         except Exception as e:
-            if 'Request entity too large' in str(e):
-                await interaction.followup.send(f"Error: Video file is too large to upload.\nMax file size: {max_file_size_mb} MB \nFile size: {video.get_os_filesize()} MB")
-            else:
-                await interaction.followup.send(f"Error: {e}")
+            response = Response(success=False)
+            response.add_error(error_type="UploadError", error_message="Unfortunately there was an error uploading the video.", details=str(e), metadata={"user_name": interaction.user.name, "user_id": interaction.user.id, "url": f"<{url}>", "channel_name": interaction.channel.name, "channel_id": interaction.channel.id})
+            await interaction.followup.send(f"{response.errors[0].message} -- Error Info: {response.errors[0].details}")
         
         # Clean up the file after upload
         video.delete_file()
+        response = Response(success=True)
     else:
-        await interaction.followup.send("Error: Downloaded file not found.")
+        response = Response(success=False)
+        response.add_error(error_type="FileNotFoundError", error_message="Downloaded file not found.", metadata={"user_name": interaction.user.name, "user_id": interaction.user.id, "url": f"<{url}>", "channel_name": interaction.channel.name, "channel_id": interaction.channel.id})
+        await interaction.followup.send(f"{response.errors[0].message} -- Error Info: {response.errors[0].details}")
 
 
 # @tree.command(name="embed_images", description="Embeds an image from a URL into the channel.")
@@ -900,7 +905,7 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
 async def on_error(event, *args, **kwargs):
 
     # Handle exceptions that occur in event handlers
-    debug_channel = client.get_channel(1140698361318625382) # this should be the ID of the bot labs and logging channel in the server :) 
+    debug_channel = client.get_channel(client.logging_channel_id) # this should be the ID of the bot labs and logging channel in the server :) 
     
     # format the text so that we just get the error and the last line of the traceback
     traceback_text = f"```{traceback.format_exc().splitlines()[-1]}```"

@@ -202,8 +202,8 @@ class Video:
                 return response
 
             # Step 1: Ensure H.264 Compatibility
-            is_h264_response = self._is_h264()
-            if not is_h264_response.response:
+            is_h264_response = self.get_codec()
+            if not is_h264_response.response == "h264":
                 print("Downloaded video is NOT H.264! Converting...")
                 conversion_response = self._convert_to_h264()
                 if not conversion_response.success:
@@ -246,17 +246,16 @@ class Video:
                 details=str(e)
             )
             return response
-
-    def _is_h264(self):
-        """Checks if the downloaded video is already H.264."""
+        
+    def get_codec(self):
+        """Extracts the codec of the downloaded video file using ffmpeg-python's probe."""
         try:
             probe = ffmpeg.probe(self.filename)
             codec_info = next(
                 (stream['codec_name'] for stream in probe['streams'] if stream['codec_type'] == 'video'),
                 None
             )
-            return Response(success=True, response=(codec_info == "h264"))
-
+            return Response(success=True, response=codec_info)
         except Exception as e:
             response = Response(success=False)
             response.add_error(
@@ -271,15 +270,12 @@ class Video:
         output_file = f"Converted_{self.filename.replace('.mp4', '')}.mp4"
 
         try:
-            # ffmpeg -i <input> -c:v libx264 -preset slow -crf 28 -profile:v main -level:v 4.1 
-            #        -pix_fmt yuv420p -c:a aac -b:a 96k -movflags +faststart <output>
             command = [
-                "ffmpeg", "-y",
-                "-i", self.filename,
-                "-c:v", "libx264", "-preset", "slow", "-crf", "28",
+                "ffmpeg", "-i", self.filename,
+                "-vf", "scale=-2:720,fps=30", # Resize to 720p and 30fps
+                "-c:v", "libx264", "-preset", "fast",
                 "-profile:v", "main", "-level:v", "4.1", "-pix_fmt", "yuv420p",
-                "-c:a", "aac", "-b:a", "96k",
-                "-movflags", "+faststart",
+                "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart",
                 output_file
             ]
 

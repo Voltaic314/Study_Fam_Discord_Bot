@@ -841,7 +841,7 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
     except Exception as e:
         response = Response(success=False)
         response.add_error(error_type="DownloadError", message="Unfortunately there was an error downloading the video.", details=str(e), metadata={"user_name": interaction.user.name, "user_id": interaction.user.id, "url": f"<{url}>", "channel_name": interaction.channel.name, "channel_id": interaction.channel.id})
-        await interaction.followup.send(f"{response.errors[0].message} -- Error Info: {response.errors[0].details}")
+        await interaction.followup.send(json.dumps(response.errors[0].to_dict(), indent=4))
         return
 
     # Upload the video if it exists
@@ -853,7 +853,7 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
         except Exception as e:
             response = Response(success=False)
             response.add_error(error_type="UploadError", message="Unfortunately there was an error uploading the video.", details=str(e), metadata={"user_name": interaction.user.name, "user_id": interaction.user.id, "url": f"<{url}>", "channel_name": interaction.channel.name, "channel_id": interaction.channel.id})
-            await interaction.followup.send(f"{response.errors[0].message} -- Error Info: {response.errors[0].details}")
+            await interaction.followup.send(json.dumps(response.errors[0].to_dict(), indent=4))
         
         # Clean up the file after upload
         video.delete_file()
@@ -861,7 +861,7 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
     else:
         response = Response(success=False)
         response.add_error(error_type="FileNotFoundError", message="Downloaded file not found.", metadata={"user_name": interaction.user.name, "user_id": interaction.user.id, "url": f"<{url}>", "channel_name": interaction.channel.name, "channel_id": interaction.channel.id})
-        await interaction.followup.send(f"{response.errors[0].message} -- Error Info: {response.errors[0].details}")
+        await interaction.followup.send(json.dumps(response.errors[0].to_dict(), indent=4))
 
 
 # @tree.command(name="embed_images", description="Embeds an image from a URL into the channel.")

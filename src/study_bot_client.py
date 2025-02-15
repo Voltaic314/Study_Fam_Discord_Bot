@@ -840,7 +840,7 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
         filename = download_response.response # this returns the filename in the response
     except Exception as e:
         response = Response(success=False)
-        response.add_error(error_type="DownloadError", error_message="Unfortunately there was an error downloading the video.", details=str(e), metadata={"user_name": interaction.user.name, "user_id": interaction.user.id, "url": f"<{url}>", "channel_name": interaction.channel.name, "channel_id": interaction.channel.id})
+        response.add_error(error_type="DownloadError", message="Unfortunately there was an error downloading the video.", details=str(e), metadata={"user_name": interaction.user.name, "user_id": interaction.user.id, "url": f"<{url}>", "channel_name": interaction.channel.name, "channel_id": interaction.channel.id})
         await interaction.followup.send(f"{response.errors[0].message} -- Error Info: {response.errors[0].details}")
         return
 
@@ -852,7 +852,7 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
             await interaction.delete_original_response()
         except Exception as e:
             response = Response(success=False)
-            response.add_error(error_type="UploadError", error_message="Unfortunately there was an error uploading the video.", details=str(e), metadata={"user_name": interaction.user.name, "user_id": interaction.user.id, "url": f"<{url}>", "channel_name": interaction.channel.name, "channel_id": interaction.channel.id})
+            response.add_error(error_type="UploadError", message="Unfortunately there was an error uploading the video.", details=str(e), metadata={"user_name": interaction.user.name, "user_id": interaction.user.id, "url": f"<{url}>", "channel_name": interaction.channel.name, "channel_id": interaction.channel.id})
             await interaction.followup.send(f"{response.errors[0].message} -- Error Info: {response.errors[0].details}")
         
         # Clean up the file after upload
@@ -860,7 +860,7 @@ async def embed_video(interaction: discord.Interaction, url: str, message: str =
         response = Response(success=True)
     else:
         response = Response(success=False)
-        response.add_error(error_type="FileNotFoundError", error_message="Downloaded file not found.", metadata={"user_name": interaction.user.name, "user_id": interaction.user.id, "url": f"<{url}>", "channel_name": interaction.channel.name, "channel_id": interaction.channel.id})
+        response.add_error(error_type="FileNotFoundError", message="Downloaded file not found.", metadata={"user_name": interaction.user.name, "user_id": interaction.user.id, "url": f"<{url}>", "channel_name": interaction.channel.name, "channel_id": interaction.channel.id})
         await interaction.followup.send(f"{response.errors[0].message} -- Error Info: {response.errors[0].details}")
 
 

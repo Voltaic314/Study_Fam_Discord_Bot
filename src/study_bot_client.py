@@ -59,7 +59,11 @@ class Study_Bot_Client(discord.Client):
             self.synced = True
         print(f"We have logged in as {self.user}.")
 
-        await self.get_activity_object()
+        try:
+            await self.get_activity_object()
+        except Exception as e:
+            print(f"Error setting activity: {e}")
+            pass
 
         # manage and sort out the focus users
         self.loop.create_task(self.focus_mode_maintenance())

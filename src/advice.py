@@ -17,7 +17,7 @@ class Advice:
 
     @staticmethod
     def get_json_from_web_request(url: str) -> str:
-        request = requests.get(url=url).json()
+        request = requests.get(url=url, timeout=30).json()
         return request
 
     def search_advice_by_term(self, search_term: str) -> list[str]:
@@ -27,7 +27,7 @@ class Advice:
         for advice in advice_json:
             advice_results.append(advice['slip']['advice'])
 
-    def search_advice_by_id(self, id_to_search: int or str) -> str:
+    def search_advice_by_id(self, id_to_search: int) -> str:
         search_url = self.id_search_api_endpoint + str(id_to_search)
         return self.get_json_from_web_request(search_url)['slip']['advice']
 

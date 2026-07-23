@@ -2,7 +2,6 @@ import asyncio
 import os
 import sys
 import json
-import random
 import traceback
 
 import discord
@@ -38,7 +37,6 @@ class Study_Bot_Client(discord.Client):
         self.synced = False
 
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
-        self.SELF_CARE_CHANNEL_ID = discord_bot_credentials["Self_Care_Channel_ID"]
         self.server_id = discord_bot_credentials["Server_ID_for_Study_Fam"]
         self.user_id = discord_bot_credentials["Client_ID"]
         self.Focus_Role_int = discord_bot_credentials["Focus_Role_ID"]
@@ -68,30 +66,8 @@ class Study_Bot_Client(discord.Client):
         # manage and sort out the focus users
         self.loop.create_task(self.focus_mode_maintenance())
 
-        # start the self care message posting loop
-        self.loop.create_task(self.self_care_reminder_time_loop())
-
         # start the reminders loop
-        self.loop.create_task(self.remind_all_users())
-
-        #### NOTE: disabling void clearing in accordance with new server rules. Mods want a paper trail of things. If you want the auto-delete channel to work, you need to uncomment out this code. ###
-        # # clear the void channel with the last bit of this code
-        # guild = self.get_guild(self.server_id)
-        # auto_delete_channel_id = discord_bot_credentials["Auto_Delete_Channel_ID"]
-        # auto_delete_channel = guild.get_channel(auto_delete_channel_id)
-
-        # five_minutes_in_seconds = 300
-        # await asyncio.sleep(five_minutes_in_seconds)
-
-        # async for message in auto_delete_channel.history(limit=None, oldest_first=True):
-        #     if not message.pinned:
-        #         await message.delete()
-        #         await asyncio.sleep(5)
-
-        # for thread in auto_delete_channel.threads:
-        #     await thread.delete()
-        #     await asyncio.sleep(5)
-                
+        self.loop.create_task(self.remind_all_users()) 
         
     async def focus_mode_maintenance(self):
         await self.wait_until_ready()
@@ -124,83 +100,6 @@ class Study_Bot_Client(discord.Client):
 
             await asyncio.sleep(60)
 
-    # Function to start posting messages on a fixed interval (every 2 hours)
-    async def self_care_reminder_time_loop(self):
-        await self.wait_until_ready()
-
-        # define our variables for later on
-        guild = self.get_guild(self.server_id)
-        self_care_channel = guild.get_channel(self.SELF_CARE_CHANNEL_ID)
-        self_care_message_to_send = "Posture & hydration check! I'm watching you! :eyes:"
-        number_of_seconds_in_one_hour = 3600
-        number_of_seconds_in_four_hours = number_of_seconds_in_one_hour * 4
-
-        while True:
-
-            last_message_sent_time = await self.get_last_message_time_sent_from_user(user_id=self.user_id,
-                                                                                     channel=self_care_channel)
-
-            if not last_message_sent_time:
-                # post the self-care reminder to the channel.
-                await self_care_channel.send(self_care_message_to_send)
-
-            else:
-                last_message_is_older_than_an_hour = Time_Stuff.is_input_time_past_threshold(
-                    last_message_sent_time, 3600, True)
-
-                # This is so in case we have to reboot the bot it's not just spamming the channel every single time.
-                if last_message_is_older_than_an_hour:
-
-                    # delete the previous message before we post again
-                    last_message = await self.get_last_message_from_user(self.user_id, channel=self_care_channel)
-                    if last_message:
-                        await last_message.delete()
-
-                    # post the self-care reminder to the channel.
-                    await self_care_channel.send(self_care_message_to_send)
-
-            # pick a random number of seconds to wait between 1 hour minimum and 4 hours maximum
-            # This ensures the bot will never post less than at least 6 times a day, but up to 24 times a day max.
-            sleep_time = random.randint(number_of_seconds_in_one_hour, 
-                                        number_of_seconds_in_four_hours)
-
-            # sleep until it's time to post again.
-            await asyncio.sleep(sleep_time)
-
-
-    async def yearly_progress_bar(self):
-        await self.wait_until_ready()
-
-        # define our variables for later on
-        guild = self.get_guild(self.server_id)
-        self_care_channel = guild.get_channel(self.SELF_CARE_CHANNEL_ID)
-
-        last_message_sent_time = await self.get_last_message_time_sent_from_user(user_id=self.user_id,
-                                                                                    channel=self_care_channel)
-
-        if last_message_sent_time:
-            last_message_is_older_than_a_day = Time_Stuff.is_input_time_past_threshold(
-                last_message_sent_time, 10080, True)
-
-            # This is so in case we have to reboot the bot it's not just spamming the channel every single time.
-            if last_message_is_older_than_a_day:
-
-                # delete the previous message before we post again
-                last_message = await self.get_last_message_from_user(self.user_id, channel=self_care_channel)
-                await last_message.delete()
-
-        progress_bar_img_filename = "progress_bar.png"
-
-        # send the file to the thread in a message
-        with open(progress_bar_img_filename, mode='rb') as img_file:
-            # prepare the file object
-            img_file_to_upload = discord.File(
-                img_file, filename=progress_bar_img_filename)
-            await self_care_channel.send(content="Yearly progress as of today: ", file=img_file_to_upload)
-
-
-    ## FIXME: something about reminders doesn't work. I think it's not clearing the people from the database properly.
-    ## Not sure what's going on there. This will need to be fixed soon. One day... lol
     def get_users_who_need_to_be_reminded(self):
         current_time = Time_Stuff.get_current_time_in_epochs()
         database_entries = self.database_instance.retrieve_values_from_table("Reminders")
@@ -209,43 +108,47 @@ class Study_Bot_Client(discord.Client):
 
         for entry in database_entries:
             reminder_time = entry[2]
-            if current_time - reminder_time > 0:
+            if current_time >= reminder_time:
                 users_that_need_to_be_reminded.append(entry)
 
         return users_that_need_to_be_reminded
 
-    async def remind_user(self, user_id: int, reminder_message: str):
-        user = self.get_user(user_id)
-        await user.send(reminder_message)
-        self.database_instance.remove_entry_from_table("Reminders", "User_ID", user_id)
+    async def remind_user(self, user_id: int, reminder_message: str, reminder_epoch: float):
+        try:
+            user = self.get_user(user_id) or await self.fetch_user(user_id)
+            await user.send(f"⏰ Reminder: {reminder_message}")
+            self.database_instance.delete_reminder(user_id, reminder_epoch)
+        except discord.Forbidden:
+            print(f"Cannot DM user {user_id}; removing reminder so it does not retry forever.")
+            self.database_instance.delete_reminder(user_id, reminder_epoch)
+        except Exception as e:
+            print(f"Failed to remind user {user_id}: {e}")
 
     async def remind_all_users(self):
         await self.wait_until_ready()
-        
+
         while True:
             user_list = self.get_users_who_need_to_be_reminded()
             for user in user_list:
-
-                # define the layout of the tuple to more human readable terms
-                user_name = user[0]
                 user_id = user[1]
                 time_of_reminder = user[2]
                 reminder_message = user[3]
 
+                await self.remind_user(
+                    user_id=user_id,
+                    reminder_message=reminder_message,
+                    reminder_epoch=time_of_reminder,
+                )
+                # wait briefly so we don't get rate limited
+                await asyncio.sleep(1)
 
-                # TODO: turning off reminders for now. This needs to be fixed.
-                # remind each user one by one
-                # await self.remind_user(user_id=user_id, reminder_message=reminder_message)
-                
-                # wait 5 seconds after reminding so we don't get rate limited
-                # await asyncio.sleep(5)
-
-            # wait 1 min between checking to see who needs to be reminded.
-            await asyncio.sleep(60)
-
+            # wait 30s between checks so short reminders stay reasonably on time
+            await asyncio.sleep(30)
 
     @staticmethod
     async def get_last_message_time_sent_from_user(user_id: int, channel: object):
+        if channel is None:
+            return None
         channel_history = channel.history(limit=None, oldest_first=False)
         async for message_from_user in channel_history:
             if message_from_user.author.id == user_id and not message_from_user.pinned:
@@ -253,6 +156,8 @@ class Study_Bot_Client(discord.Client):
 
     @staticmethod
     async def get_last_message_from_user(user_id: int, channel: object):
+        if channel is None:
+            return None
         channel_history = channel.history(limit=None, oldest_first=False)
         async for message_from_user in channel_history:
             if message_from_user.author.id == user_id and not message_from_user.pinned:
@@ -266,7 +171,117 @@ class Study_Bot_Client(discord.Client):
             return Time_Stuff.is_input_time_past_threshold(time_of_last_message_sent, thirty_minutes_in_seconds, True)
         else:
             return True
-        
+
+    async def get_logging_channel(self) -> discord.abc.Messageable | None:
+        channel = self.get_channel(self.logging_channel_id)
+        if channel is not None:
+            return channel
+        try:
+            return await self.fetch_channel(self.logging_channel_id)
+        except Exception as e:
+            print(f"Could not fetch logging channel {self.logging_channel_id}: {e}")
+            return None
+
+    @staticmethod
+    def _truncate(text: str | None, limit: int = 1000) -> str:
+        if not text:
+            return "N/A"
+        text = str(text)
+        return text if len(text) <= limit else text[: limit - 3] + "..."
+
+    async def log_error(
+        self,
+        *,
+        title: str,
+        error_type: str | None = None,
+        message: str | None = None,
+        details: str | None = None,
+        metadata: dict | None = None,
+        interaction: discord.Interaction | None = None,
+        exception: BaseException | None = None,
+    ) -> str | None:
+        """
+        Post structured error details to the logging channel.
+        Returns a Jump URL to that log message, or None if logging failed.
+        """
+        if exception is not None and not details:
+            details = "".join(
+                traceback.format_exception(type(exception), exception, exception.__traceback__)
+            )
+
+        meta = dict(metadata or {})
+        if interaction is not None:
+            meta.setdefault("user_name", str(interaction.user))
+            meta.setdefault("user_id", interaction.user.id)
+            if interaction.channel is not None:
+                meta.setdefault("channel_name", getattr(interaction.channel, "name", str(interaction.channel)))
+                meta.setdefault("channel_id", interaction.channel.id)
+            if interaction.command is not None:
+                meta.setdefault("command", interaction.command.name)
+            meta.setdefault("guild_id", interaction.guild_id)
+
+        print(f"[ERROR] {title} | type={error_type} | message={message} | details={details} | meta={meta}")
+
+        channel = await self.get_logging_channel()
+        if channel is None:
+            return None
+
+        embed = discord.Embed(
+            title=title[:256],
+            description=self._truncate(message, 4096),
+            color=discord.Color.red(),
+            timestamp=discord.utils.utcnow(),
+        )
+        if error_type:
+            embed.add_field(name="Error Type", value=self._truncate(error_type, 1024), inline=True)
+        if interaction is not None and interaction.command is not None:
+            embed.add_field(name="Command", value=f"`/{interaction.command.name}`", inline=True)
+        if meta:
+            meta_lines = [f"**{k}:** {v}" for k, v in meta.items()]
+            embed.add_field(name="Metadata", value=self._truncate("\n".join(meta_lines), 1024), inline=False)
+        if details:
+            embed.add_field(name="Technical Details", value=f"```{self._truncate(details, 1000)}```", inline=False)
+
+        try:
+            log_message = await channel.send(embed=embed)
+            return log_message.jump_url
+        except Exception as e:
+            print(f"Failed to send error to logging channel: {e}")
+            return None
+
+    async def reply_with_logged_error(
+        self,
+        interaction: discord.Interaction,
+        *,
+        user_message: str,
+        title: str = "Command Error",
+        error_type: str | None = None,
+        details: str | None = None,
+        metadata: dict | None = None,
+        exception: BaseException | None = None,
+        ephemeral: bool = False,
+    ) -> None:
+        """Log technical details, then reply to the user with a friendly message + Jump! link."""
+        jump_url = await self.log_error(
+            title=title,
+            error_type=error_type,
+            message=user_message,
+            details=details,
+            metadata=metadata,
+            interaction=interaction,
+            exception=exception,
+        )
+        content = user_message
+        if jump_url:
+            content = f"{user_message}\n[Jump!]({jump_url}) for technical details."
+
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(content, ephemeral=ephemeral)
+            else:
+                await interaction.response.send_message(content, ephemeral=ephemeral)
+        except Exception as e:
+            print(f"Failed to send user-facing error reply: {e}")
 
     async def send_content_pings(self, message: discord.Message) -> None:
         message_to_send = get_content_ping_message(message=message)
@@ -335,6 +350,17 @@ class Study_Bot_Client(discord.Client):
             except Exception as e:
                 print(e)
                 traceback.print_exc()
+                await self.log_error(
+                    title="YT transcription upload failed",
+                    error_type=type(e).__name__,
+                    message="Failed to upload transcription file to thread.",
+                    metadata={
+                        "video_url": getattr(video, "url", None),
+                        "thread_id": getattr(thread, "id", None),
+                        "channel_id": getattr(message.channel, "id", None),
+                    },
+                    exception=e,
+                )
             txt_file.close()
 
         await thread.send(message_to_send)
@@ -372,74 +398,6 @@ async def on_message(message: discord.message.Message):
             print("Yep msg attachments contain images")
             await extract_text_from_incoming_messages_main(message=message)
     '''
-
-
-def generate_starboard_embed(message, star_count):
-    starboard_message = discord.Embed(
-        title="Starred Message",
-        description=f"New Star Count: {star_count}\n{message.content}",
-        color=0xFFFF00  # Yellow color
-    )
-    starboard_message.set_author(name=f"{message.author.display_name}", icon_url=message.author.avatar_url)
-    starboard_message.add_field(name="Source", value=f"[Jump!]({message.jump_url})")
-    starboard_message.set_footer(text=f"{message.id} • {message.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
-
-    # Check for message attachments (images) and add them to the embed.
-    if message.attachments:
-        image_url = message.attachments[0].url  # Assuming one attachment per message
-        starboard_message.set_image(url=image_url)
-
-    return starboard_message
-
-
-def get_special_emote_count(message: discord.Reaction.message) -> dict[str, int]:
-    '''
-    This function iterates through the emoji reactions of a message to get potential matches
-    for special emote cases. If certain emotes are found, they are added to the count. 
-    In this case, we have to use specific emote IDs because if someone adds 2 different hypers
-    emotes to a message, we don't want that to count for 2 reactions of that emote. 
-
-    Parameters: 
-    message: a discord message object. preferably one from the Reaction model, but I think
-    any would work. 
-
-    Returns: dictionary where the keys are strings of the emote's ID, and the values are
-    the number of times that specific emote showed up. 
-    '''
-
-    special_emote_names_and_ids = {'star': 0, 'Hypers': 0, 'EzPepe': 0}
-
-    special_emote_counts = {'star': 0, 'Hypers': 0, 'EzPepe': 0}
-
-    # get the message reaction counts
-    for emoji in message.reactions:
-        emoji_name = emoji.emoji.name if emoji.custom_emoji else emoji.emoji
-        emote_is_special = emoji_name in special_emote_counts.keys()
-        if emote_is_special:
-            special_emote_counts[emoji_name] = emoji.count
-
-    return special_emote_counts
-
-
-# TODO: Implement the highlights channel reaction handling
-# @client.event
-# async def on_reaction_add(reaction, user):
-    # post_to_highlights_threshold = 5
-
-    # define our terms
-    # message = reaction.message
-    # special_emote_counts = get_special_emote_count(message=message)
-
-    # special conditions
-    #over_react_threshold = reaction.count > post_to_highlights_threshold
-
-    
-
-    # we_should_post_this_message = all([])
-    
-
-    # Send the embed to the starboard channel.
-    # await starboard_channel.send(embed=starboard_message)
 
 
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")
@@ -779,151 +737,175 @@ async def transcribe_a_yt_video(interaction: discord.Interaction, yt_url: str):
 
 @tree.command(name="short_term_reminder", description="Send a custom reminder to yourself up to 1440 minutes from now.")
 async def short_term_reminder(interaction: discord.Interaction, minutes: int, reminder_message: str):
-    await interaction.response.defer()
+    await interaction.response.defer(ephemeral=True)
     if minutes > 1440 or minutes < 1:
-        await interaction.followup.send("Please try again with minute values between 1 and 1440")
+        await interaction.followup.send("Please try again with minute values between 1 and 1440", ephemeral=True)
+        return
 
     reminder_time_in_seconds = minutes * 60
     current_time_in_epochs = Time_Stuff.get_current_time_in_epochs()
-
     time_to_remind_user = current_time_in_epochs + reminder_time_in_seconds
 
     info_to_log = (interaction.user.name, interaction.user.id, time_to_remind_user, reminder_message)
-
-
     database_instance.log_to_DB(info_to_log, "Reminders")
     await interaction.followup.send(f"Done! You will be reminded of this in {minutes} minutes!", ephemeral=True)
-    interaction.response.is_done()
 
 
 @tree.command(name="long_term_reminder", description="Sends you a custom reminder at the time specified. (ALL TIMES IN EST)")
 async def long_term_reminder(interaction: discord.Interaction, date: str, time: str, reminder_message: str):
-    await interaction.response.defer()
+    await interaction.response.defer(ephemeral=True)
 
     format_check = Time_Stuff.check_user_formatting_for_long_term_reminders(date=date, time=time)
 
     if "incorrect" in format_check:
-    
         if "date" in format_check:
-            await interaction.followup.send("Please enter the date format as dd-mm-yyyy with the dashes.")
-    
+            await interaction.followup.send("Please enter the date format as dd-mm-yyyy with the dashes.", ephemeral=True)
         elif "time" in format_check:
-            await interaction.followup.send("Please enter the time format (EST Time) as hh:mm format")
-    
-    else:
+            await interaction.followup.send("Please enter the time format (EST Time) as hh:mm format", ephemeral=True)
+        return
 
-        date_time_in_future_epochs = Time_Stuff.convert_date_time_string_to_strp_object(date=date, time=time).timestamp()
+    date_time_in_future_epochs = Time_Stuff.convert_date_time_string_to_strp_object(date=date, time=time).timestamp()
+    if date_time_in_future_epochs <= Time_Stuff.get_current_time_in_epochs():
+        await interaction.followup.send("That time is already in the past. Please choose a future date/time.", ephemeral=True)
+        return
 
-        info_to_log = (interaction.user.name, interaction.user.id, date_time_in_future_epochs, reminder_message)
-        database_instance.log_to_DB(info_to_log, "Reminders")
-        await interaction.followup.send("You will be reminded at that date and time with your message!")
-        interaction.response.is_done()
-
+    info_to_log = (interaction.user.name, interaction.user.id, date_time_in_future_epochs, reminder_message)
+    database_instance.log_to_DB(info_to_log, "Reminders")
+    await interaction.followup.send("You will be reminded at that date and time with your message!", ephemeral=True)
 
 @tree.command(name="embed_video", description="Embeds a video from a URL into the channel.")
 async def embed_video(interaction: discord.Interaction, url: str, message: str = '', audio_only: bool = False):
     await interaction.response.defer()
     max_file_size_mb = interaction.guild.filesize_limit / (1024 * 1024)
-    
-    msg_to_send = f"Posted by {interaction.user.mention}\n"
 
+    msg_to_send = f"Posted by {interaction.user.mention}\n"
     if message:
         msg_to_send += f"Caption: {message}\n"
-    
     msg_to_send += f"Source: <{url}>"
 
-    video = Video(url, MAX_FILE_SIZE_MB=max_file_size_mb)
-    filename = None
+    error_metadata = {
+        "url": f"<{url}>",
+        "audio_only": audio_only,
+        "max_file_size_mb": max_file_size_mb,
+    }
 
     try:
-        # download vids in a non blocking way to prevent discord heartbeat timeouts
-        download_response = await asyncio.to_thread(video.download)
-        if not download_response.success:
-            await interaction.followup.send(f"{download_response.errors[0].message} -- Error Info: {download_response.errors[0].details}")
-            return
-        filename = download_response.response # this returns the filename in the response
+        video = await asyncio.to_thread(Video, url, max_file_size_mb)
     except Exception as e:
-        response = Response(success=False)
-        response.add_error(error_type="DownloadError", message="Unfortunately there was an error downloading the video.", details=str(e), metadata={"user_name": interaction.user.name, "user_id": interaction.user.id, "url": f"<{url}>", "channel_name": interaction.channel.name, "channel_id": interaction.channel.id})
-        await interaction.followup.send(json.dumps(response.errors[0].to_dict(), indent=4))
+        await client.reply_with_logged_error(
+            interaction,
+            user_message="Couldn't process that video link. Please try again later or with a different URL.",
+            title="embed_video init failed",
+            error_type="VideoInitError",
+            metadata=error_metadata,
+            exception=e,
+        )
         return
 
-    # Upload the video if it exists
+    if not video.init_response.success:
+        error = video.init_response.errors[0]
+        await client.reply_with_logged_error(
+            interaction,
+            user_message=error.message,
+            title="embed_video metadata failed",
+            error_type=error.error_type,
+            details=error.details,
+            metadata={**error_metadata, **(error.metadata or {})},
+        )
+        return
+
+    try:
+        download_fn = video.download_audio if audio_only else video.download
+        download_response = await asyncio.to_thread(download_fn)
+        if not download_response.success:
+            video.delete_file()
+            error = download_response.errors[0]
+            await client.reply_with_logged_error(
+                interaction,
+                user_message=error.message,
+                title="embed_video download failed",
+                error_type=error.error_type,
+                details=error.details,
+                metadata={**error_metadata, **(error.metadata or {})},
+            )
+            return
+    except Exception as e:
+        video.delete_file()
+        await client.reply_with_logged_error(
+            interaction,
+            user_message="Unfortunately there was an error downloading the video.",
+            title="embed_video download exception",
+            error_type="DownloadError",
+            metadata=error_metadata,
+            exception=e,
+        )
+        return
+
     if video.exists_locally():
         try:
-            video_file = discord.File(video.filename, filename=video.filename)
+            video_file = discord.File(video.filename, filename=os.path.basename(video.filename))
             await interaction.channel.send(content=msg_to_send, file=video_file)
             await interaction.delete_original_response()
         except Exception as e:
-            response = Response(success=False)
-            response.add_error(error_type="UploadError", message="Unfortunately there was an error uploading the video.", details=str(e), metadata={"user_name": interaction.user.name, "user_id": interaction.user.id, "url": f"<{url}>", "channel_name": interaction.channel.name, "channel_id": interaction.channel.id})
-            await interaction.followup.send(json.dumps(response.errors[0].to_dict(), indent=4))
-        
-        # Clean up the file after upload
-        video.delete_file()
-        response = Response(success=True)
+            await client.reply_with_logged_error(
+                interaction,
+                user_message="Unfortunately there was an error uploading the video.",
+                title="embed_video upload failed",
+                error_type="UploadError",
+                metadata=error_metadata,
+                exception=e,
+            )
+        finally:
+            video.delete_file()
     else:
-        response = Response(success=False)
-        response.add_error(error_type="FileNotFoundError", message="Downloaded file not found.", metadata={"user_name": interaction.user.name, "user_id": interaction.user.id, "url": f"<{url}>", "channel_name": interaction.channel.name, "channel_id": interaction.channel.id})
-        await interaction.followup.send(json.dumps(response.errors[0].to_dict(), indent=4))
+        video.delete_file()
+        await client.reply_with_logged_error(
+            interaction,
+            user_message="Downloaded file not found.",
+            title="embed_video missing file",
+            error_type="FileNotFoundError",
+            metadata=error_metadata,
+        )
+
+@tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+    """Catch unhandled slash-command exceptions and log them with a Jump! link."""
+    original = getattr(error, "original", error)
+    await client.reply_with_logged_error(
+        interaction,
+        user_message="Something went wrong running that command. Mods can check the log for details.",
+        title="Unhandled slash command error",
+        error_type=type(original).__name__,
+        exception=original,
+        ephemeral=True,
+    )
 
 
-# @tree.command(name="embed_images", description="Embeds an image from a URL into the channel.")
-# async def embed_image(interaction: discord.Interaction, url: str, message: str = ''):
-#     await interaction.response.defer()
-    
-#     msg_to_send = f"Posted by {interaction.user.mention}\n"
-
-#     if message:
-#         msg_to_send += f"Caption: {message}\n"
-    
-#     msg_to_send += f"Source: <{url}>"
-
-#     images = Images(url)
-
-#     try:
-#         download_response = images.download()
-
-#         if not any([dr.success for dr in download_response]):
-#             responses_as_dicts = [dr.to_dict() for dr in download_response]
-#             output_printable_string = json.dumps(responses_as_dicts, indent=4)
-#             await interaction.followup.send(f"Error downloading image(s): {output_printable_string}")
-#             return
-
-#     except Exception as e:
-#         await interaction.followup.send(f"Error downloading image(s): {e}")
-#         return
-
-#     # Upload the images if they exist
-#     image_files = [discord.File(f.response) for f in download_response if f.success]
-
-#     await interaction.channel.send(content=msg_to_send, files=image_files)
-#     await interaction.delete_original_response()
-    
-#     # Clean up the files after upload
-#     images.delete_all()
-
-
-# this is primarily what handles the debugging messages that get sent to the channel
 @client.event
 async def on_error(event, *args, **kwargs):
+    """Handle exceptions that occur in event handlers."""
+    tb = traceback.format_exc()
+    print(tb)
 
-    # Handle exceptions that occur in event handlers
-    debug_channel = client.get_channel(client.logging_channel_id) # this should be the ID of the bot labs and logging channel in the server :) 
-    
-    # format the text so that we just get the error and the last line of the traceback
-    traceback_text = f"```{traceback.format_exc().splitlines()[-1]}```"
+    metadata = {"event": event}
+    if event == "on_message" and args:
+        message = args[0]
+        metadata.update({
+            "message": getattr(message, "content", None),
+            "message_time": str(getattr(message, "created_at", None)),
+            "user": str(getattr(message, "author", None)),
+            "channel_id": getattr(getattr(message, "channel", None), "id", None),
+        })
 
-    if event == 'on_message': 
-        # put the message contents into the traceback text
-        message = args[0].content
-        message_time = args[0].created_at
-        message_user = args[0].author
-        traceback_text = f"Message: {message} \nTime: {message_time} \nUser: {message_user} \n" + traceback_text
-
-    # print the whole traceback to the console
-    print(traceback.format_exc())
-    await debug_channel.send(f"An error occurred:\n{traceback_text}")
+    jump_url = await client.log_error(
+        title=f"Event error: {event}",
+        error_type="EventError",
+        message=f"An error occurred in `{event}`.",
+        details=tb,
+        metadata=metadata,
+    )
+    if jump_url:
+        print(f"Logged event error: {jump_url}")
 
 
 if __name__ == "__main__":

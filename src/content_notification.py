@@ -14,6 +14,8 @@ class ContentNotification:
         self.author_id = author_id
         self.channel_id = channel_id
 
+    ## why the fuck did I hard code these ids? What the fuck was I smoking...
+
     @property
     def correct_channel(self):
         # First id is dr_k_content channel, second id is the bot labs channel. So if it was in either of those.

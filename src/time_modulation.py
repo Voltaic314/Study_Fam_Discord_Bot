@@ -1,5 +1,6 @@
 import time
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import math
 
 
@@ -19,7 +20,9 @@ class Time_Stuff:
     
     @staticmethod
     def convert_date_time_string_to_strp_object(date: str, time: str):
-        return datetime.strptime(f'{date} {time}', "%d-%m-%Y %H:%M")
+        # Interpret user input as US Eastern time (EST/EDT), matching the slash command docs.
+        naive = datetime.strptime(f'{date} {time}', "%d-%m-%Y %H:%M")
+        return naive.replace(tzinfo=ZoneInfo("America/New_York"))
 
     @staticmethod
     def how_many_minutes_apart(epoch_time_one: float, epoch_time_two: float) -> list[float]:

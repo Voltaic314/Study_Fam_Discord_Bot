@@ -20,74 +20,6 @@ database_file_name_and_path = File_Processing.return_file_name_with_current_dire
 database_instance = Database(database_file_name_and_path)
 
 
-def generate_starboard_embed(message, star_count):
-    starboard_message = discord.Embed(
-        title="Starred Message",
-        description=f"New Star Count: {star_count}\n{message.content}",
-        color=0xFFFF00  # Yellow color
-    )
-    starboard_message.set_author(name=f"{message.author.display_name}", icon_url=message.author.avatar_url)
-    starboard_message.add_field(name="Source", value=f"[Jump!]({message.jump_url})")
-    starboard_message.set_footer(text=f"{message.id} • {message.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
-
-    # Check for message attachments (images) and add them to the embed.
-    if message.attachments:
-        image_url = message.attachments[0].url  # Assuming one attachment per message
-        starboard_message.set_image(url=image_url)
-
-    return starboard_message
-
-
-def get_special_emote_count(message: discord.Reaction.message) -> dict[str, int]:
-    '''
-    This function iterates through the emoji reactions of a message to get potential matches
-    for special emote cases. If certain emotes are found, they are added to the count. 
-    In this case, we have to use specific emote IDs because if someone adds 2 different hypers
-    emotes to a message, we don't want that to count for 2 reactions of that emote. 
-
-    Parameters: 
-    message: a discord message object. preferably one from the Reaction model, but I think
-    any would work. 
-
-    Returns: dictionary where the keys are strings of the emote's ID, and the values are
-    the number of times that specific emote showed up. 
-    '''
-
-    special_emote_names_and_ids = {'star': 0, 'Hypers': 0, 'EzPepe': 0}
-
-    special_emote_counts = {'star': 0, 'Hypers': 0, 'EzPepe': 0}
-
-    # get the message reaction counts
-    for emoji in message.reactions:
-        emoji_name = emoji.emoji.name if emoji.custom_emoji else emoji.emoji
-        emote_is_special = emoji_name in special_emote_counts.keys()
-        if emote_is_special:
-            special_emote_counts[emoji_name] = emoji.count
-
-    return special_emote_counts
-
-
-# TODO: Implement the highlights channel reaction handling
-# @client.event
-# async def on_reaction_add(reaction, user):
-    # post_to_highlights_threshold = 5
-
-    # define our terms
-    # message = reaction.message
-    # special_emote_counts = get_special_emote_count(message=message)
-
-    # special conditions
-    #over_react_threshold = reaction.count > post_to_highlights_threshold
-
-    
-
-    # we_should_post_this_message = all([])
-    
-
-    # Send the embed to the starboard channel.
-    # await starboard_channel.send(embed=starboard_message)
-
-
 @tree.command(name="focus_mode_in_x_minutes", description="Gives user focus mode role.")
 async def FocusMode(interaction: discord.Interaction, minutes: int):
     Focus_Role_object = interaction.guild.get_role(client.Focus_Role_int)
@@ -425,45 +357,41 @@ async def transcribe_a_yt_video(interaction: discord.Interaction, yt_url: str):
 
 @tree.command(name="short_term_reminder", description="Send a custom reminder to yourself up to 1440 minutes from now.")
 async def short_term_reminder(interaction: discord.Interaction, minutes: int, reminder_message: str):
-    await interaction.response.defer()
+    await interaction.response.defer(ephemeral=True)
     if minutes > 1440 or minutes < 1:
-        await interaction.followup.send("Please try again with minute values between 1 and 1440")
+        await interaction.followup.send("Please try again with minute values between 1 and 1440", ephemeral=True)
+        return
 
     reminder_time_in_seconds = minutes * 60
     current_time_in_epochs = Time_Stuff.get_current_time_in_epochs()
-
     time_to_remind_user = current_time_in_epochs + reminder_time_in_seconds
 
     info_to_log = (interaction.user.name, interaction.user.id, time_to_remind_user, reminder_message)
-
-
     database_instance.log_to_DB(info_to_log, "Reminders")
     await interaction.followup.send(f"Done! You will be reminded of this in {minutes} minutes!", ephemeral=True)
-    interaction.response.is_done()
 
 
 @tree.command(name="long_term_reminder", description="Sends you a custom reminder at the time specified. (ALL TIMES IN EST)")
 async def long_term_reminder(interaction: discord.Interaction, date: str, time: str, reminder_message: str):
-    await interaction.response.defer()
+    await interaction.response.defer(ephemeral=True)
 
     format_check = Time_Stuff.check_user_formatting_for_long_term_reminders(date=date, time=time)
 
     if "incorrect" in format_check:
-    
         if "date" in format_check:
-            await interaction.followup.send("Please enter the date format as dd-mm-yyyy with the dashes.")
-    
+            await interaction.followup.send("Please enter the date format as dd-mm-yyyy with the dashes.", ephemeral=True)
         elif "time" in format_check:
-            await interaction.followup.send("Please enter the time format (EST Time) as hh:mm format")
-    
-    else:
+            await interaction.followup.send("Please enter the time format (EST Time) as hh:mm format", ephemeral=True)
+        return
 
-        date_time_in_future_epochs = Time_Stuff.convert_date_time_string_to_strp_object(date=date, time=time).timestamp()
+    date_time_in_future_epochs = Time_Stuff.convert_date_time_string_to_strp_object(date=date, time=time).timestamp()
+    if date_time_in_future_epochs <= Time_Stuff.get_current_time_in_epochs():
+        await interaction.followup.send("That time is already in the past. Please choose a future date/time.", ephemeral=True)
+        return
 
-        info_to_log = (interaction.user.name, interaction.user.id, date_time_in_future_epochs, reminder_message)
-        database_instance.log_to_DB(info_to_log, "Reminders")
-        await interaction.followup.send("You will be reminded at that date and time with your message!")
-        interaction.response.is_done()
+    info_to_log = (interaction.user.name, interaction.user.id, date_time_in_future_epochs, reminder_message)
+    database_instance.log_to_DB(info_to_log, "Reminders")
+    await interaction.followup.send("You will be reminded at that date and time with your message!", ephemeral=True)
 
 # this is primarily what handles the debugging messages that get sent to the channel
 @client.event

@@ -8,10 +8,16 @@ class Database:
         self.file_path_and_name = file_path_and_name
         self.connect = sqlite3.connect(file_path_and_name)
         self.cursor = self.connect.cursor()
+        self.ensure_tables_exist()
+
+    def ensure_tables_exist(self):
+        """Create all required tables if they are missing."""
+        self.build_focus_mode_table()
+        self.build_reminders_table()
 
     @property
     def table_names(self):
-        self.cursor.execute(f"""SELECT name FROM {self.file_path_and_name} WHERE type='table';""")
+        self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
         tuple_of_table_names = self.cursor.fetchall()
 
         # Returning it this way so that it returns a list of table names instead of a list of tuples of table names.
@@ -67,42 +73,39 @@ class Database:
     ## Built the database with these columns
     def build_focus_mode_table(self):
         self.cursor.execute(
-            "CREATE TABLE Study_Fam_People_Currently_In_Focus_Mode (Username text, User_ID integer, "
-            "Epoch_End_Time_for_User_Focus_Mode real, Start_of_Session_Time text) ")
-        self.connect.commit()
-
-    def build_self_care_log_table(self):
-        self.cursor.execute(
-            "CREATE TABLE Self_Care_Log_Table (last_message_sent_epoch_time real, next_message_time_to_send real,"
-            " last_message_sent_id integer) ")
-        self.connect.commit()
-
-    
-    def build_highlights_table(self):
-        self.cursor.execute(
-            "CREATE TABLE Highlights_Messages (Highlight_message_ID integer, Original_Message_ID integer,"
-            " star_react_count integer, hypers_react_count integer, ezpepe_react_count integer) ")
+            "CREATE TABLE IF NOT EXISTS Study_Fam_People_Currently_In_Focus_Mode ("
+            "Username text, User_ID integer, "
+            "Epoch_End_Time_for_User_Focus_Mode real, Start_of_Session_Time text)")
         self.connect.commit()
 
     def build_reminders_table(self):
         self.cursor.execute(
-            "CREATE TABLE Reminders (Username text, User_ID integer, "
-            "Epoch_End_Time_for_Reminder real, Reminder_Message text) ")
+            "CREATE TABLE IF NOT EXISTS Reminders ("
+            "Username text, User_ID integer, "
+            "Epoch_End_Time_for_Reminder real, Reminder_Message text)")
         self.connect.commit()
 
     def delete_user_info_from_table(self, name_of_table: str, User_ID: int):
-        self.cursor.execute(f"DELETE FROM {name_of_table} WHERE User_ID = {User_ID}")
+        self.cursor.execute(f"DELETE FROM {name_of_table} WHERE User_ID = ?", (User_ID,))
         self.connect.commit()
 
     def remove_entry_from_table(self, name_of_table: str, column_name: str, identifier_value):
-        self.cursor.execute(f"DELETE FROM {name_of_table} WHERE {column_name} = {identifier_value}")
-
-    def delete_message_from_table(self, name_of_table: str, Message_ID: int):
-        self.cursor.execute(f"DELETE FROM {name_of_table} WHERE message_id = {Message_ID}")
+        self.cursor.execute(
+            f"DELETE FROM {name_of_table} WHERE {column_name} = ?",
+            (identifier_value,),
+        )
         self.connect.commit()
 
-    def delete_self_care_time_from_table(self, name_of_table: str, message_sent_epoch_time: float):
-        self.cursor.execute(f"DELETE FROM {name_of_table} WHERE last_message_sent_epoch_time = {message_sent_epoch_time}")
+    def delete_reminder(self, user_id: int, reminder_epoch: float):
+        """Remove one specific reminder so other reminders for the same user stay intact."""
+        self.cursor.execute(
+            "DELETE FROM Reminders WHERE User_ID = ? AND Epoch_End_Time_for_Reminder = ?",
+            (user_id, reminder_epoch),
+        )
+        self.connect.commit()
+
+    def delete_message_from_table(self, name_of_table: str, Message_ID: int):
+        self.cursor.execute(f"DELETE FROM {name_of_table} WHERE message_id = ?", (Message_ID,))
         self.connect.commit()
 
     def update_user_info_from_focus_table(self, User_ID: int, time_to_update: float):
@@ -174,41 +177,6 @@ class Database:
             self.cursor.execute(f'INSERT INTO {table_name} VALUES {formatted_string}', row)
         self.connect.commit()
         return True
-
-    def self_care_table_item_modifier(self, message_id: int, new_reminder_time: float) -> bool:
-        self_care_log_entries = self.retrieve_values_from_table("Self_Care_Log_Table")
-        if self_care_log_entries:
-            # fetch the lastest listing in the db for that user
-            self.cursor.execute(f'SELECT * FROM Self_Care_Log_Table WHERE last_message_sent_id = {message_id}')
-            list_of_tuple_of_items = self.cursor.fetchall()
-
-            # Before we do anything to the table, we need to clear out duplicates from it.
-            self.remove_duplicates_from_table("Self_Care_Log_Table")
-
-            for entry in list_of_tuple_of_items:
-
-                # format our data to get it ready for updating the db
-                time_message_was_posted = entry[0]
-                current_entry_message_id = entry[2]
-
-                if current_entry_message_id == message_id:
-                    time_message_will_post_again = new_reminder_time
-
-                    new_tuple_to_put_in_db = (time_message_was_posted, time_message_will_post_again,
-                                              current_entry_message_id)
-
-                    # now that we have the new formatted data ready, delete the old listing.
-                    self.cursor.execute(f"DELETE FROM Self_Care_Log_Table WHERE last_sent_message_id = {message_id}")
-
-                    # insert new info into the database once we have the formatted data and previous entry deleted.
-                    formatted_string = self.format_tuple_into_string(new_tuple_to_put_in_db)
-                    self.cursor.execute(f'INSERT INTO Self_Care_Log_Table VALUES {formatted_string}',
-                                        new_tuple_to_put_in_db)
-
-                    self.connect.commit()
-
-        else:
-            return False
 
 
 # adding this down here so I can manually update the db file then

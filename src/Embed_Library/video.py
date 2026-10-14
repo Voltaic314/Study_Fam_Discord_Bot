@@ -72,7 +72,25 @@ class Video:
 
     def exists_locally(self):
         """Checks if the video file exists locally."""
-        return os.path.exists(self.filename)
+        return bool(self.filename) and os.path.exists(self.filename)
+
+    def _replace_current_file(self, new_path: str) -> None:
+        """Swap self.filename with a newly produced file without wiping intermediates."""
+        if not os.path.isfile(new_path):
+            raise FileNotFoundError(f"Expected output file was not created: {new_path}")
+
+        old_path = self.filename
+        if old_path and os.path.isfile(old_path) and os.path.abspath(old_path) != os.path.abspath(new_path):
+            try:
+                os.remove(old_path)
+            except OSError as e:
+                print(f"Failed to remove old file {old_path}: {e}")
+
+        os.rename(new_path, old_path if old_path else new_path)
+        if old_path:
+            self.filename = old_path
+        else:
+            self.filename = new_path
 
     def is_video(self):
         """Returns True if the URL is a video, False otherwise."""
@@ -219,17 +237,20 @@ class Video:
             ]
 
             subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
-
-            self.delete_file()
-            os.rename(output_filename, self.filename)
+            self._replace_current_file(output_filename)
 
             # Debug: Print new resolution & file size
             new_resolution = self.get_video_resolution()
             print(f"New resolution after scaling: {new_resolution}")
             print(f"New file size after scaling: {self.get_os_filesize()} MB")
 
-        except subprocess.CalledProcessError as e:
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError) as e:
             print(f"Error resizing video: {e}")
+            if os.path.isfile(output_filename):
+                try:
+                    os.remove(output_filename)
+                except OSError:
+                    pass
 
         return self.filename
 
@@ -355,14 +376,16 @@ class Video:
             ]
 
             subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
-
-            # Replace old file with converted file
-            self.delete_file()
-            os.rename(output_file, self.filename)
+            self._replace_current_file(output_file)
 
             return Response(success=True, response=self.filename)
 
-        except subprocess.CalledProcessError as e:
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError) as e:
+            if os.path.isfile(output_file):
+                try:
+                    os.remove(output_file)
+                except OSError:
+                    pass
             response = Response(success=False)
             response.add_error(
                 error_type="H264ConversionError",
@@ -374,12 +397,15 @@ class Video:
     def compress(self, target_bitrate="1M"):
         """Compresses the media using ffmpeg and returns the new file path."""
         if not self.exists_locally():
-            raise FileNotFoundError("Downloaded media not found.")
+            response = Response(success=False)
+            response.add_error(
+                error_type="FileNotFoundError",
+                message="Downloaded media not found.",
+            )
+            return response
 
         output_filename = f"Compressed_{self.filename.replace('.mp4', '')}.mp4"
 
-        # ffmpeg -i <input> -c:v libx264 -preset fast -profile:v main -level:v 4.1 
-        #        -pix_fmt yuv420p -b:v <target_bitrate> -c:a aac -b:a 96k -movflags +faststart <output>
         command = [
             "ffmpeg", "-y",
             "-i", self.filename,
@@ -391,13 +417,24 @@ class Video:
             output_filename
         ]
 
-        subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-        self.delete_file()
-        os.rename(output_filename, self.filename)
-        file_size = os.path.getsize(self.filename) / (1024 * 1024)
-        self.filesize = file_size
-        return Response(success=True)
+        try:
+            subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+            self._replace_current_file(output_filename)
+            self.filesize = self.get_os_filesize()
+            return Response(success=True, response=self.filename)
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError) as e:
+            if os.path.isfile(output_filename):
+                try:
+                    os.remove(output_filename)
+                except OSError:
+                    pass
+            response = Response(success=False)
+            response.add_error(
+                error_type="CompressionError",
+                message="An error occurred while compressing the video.",
+                details=str(e),
+            )
+            return response
 
     def delete_file(self):
         """Delete the active output and any leftover video/audio files for this download."""

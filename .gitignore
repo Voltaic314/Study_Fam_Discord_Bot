@@ -29,3 +29,5 @@ __pycache__/
 session_cookies/
 
 cron.log
+.study_bot.lock
+src/.study_bot.lock

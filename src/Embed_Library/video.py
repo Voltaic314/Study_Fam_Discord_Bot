@@ -234,27 +234,10 @@ class Video:
         return self.filename
 
     def download(self):
-        """Downloads media if it fits the Discord upload limit.
-
-        Temporary: oversized files are rejected instead of being resized/compressed,
-        since that pipeline is unreliable on the current host.
-        """
+        """Downloads and compresses the media if necessary before returning the file path."""
 
         if not self.init_response.success:
             return self.init_response
-
-        # Reject early when yt-dlp already knows the file is too big
-        if self.filesize and self.filesize > self.MAX_FILE_SIZE_MB:
-            response = Response(success=False)
-            response.add_error(
-                error_type="FileTooLarge",
-                message=(
-                    f"That video is about {self.filesize:.1f} MB, which is over this "
-                    f"server's {self.MAX_FILE_SIZE_MB:.0f} MB upload limit. "
-                    "Compression is temporarily disabled, so please try a smaller video."
-                ),
-            )
-            return response
 
         is_video_response = self.is_video()
         if not is_video_response.success:
@@ -288,7 +271,7 @@ class Video:
                 )
                 return response
 
-            # Ensure H.264 Compatibility for Discord playback
+            # Step 1: Ensure H.264 Compatibility for Discord playback
             is_h264_response = self.get_codec()
             if is_h264_response.success and is_h264_response.response != "h264":
                 print("Downloaded video is NOT H.264! Converting...")
@@ -296,21 +279,31 @@ class Video:
                 if not conversion_response.success:
                     return conversion_response
 
+            # Step 2: Scale down if over the guild upload limit
             file_size = self.get_os_filesize()
             if file_size > self.MAX_FILE_SIZE_MB:
-                # Temporary: do not resize/compress oversized media on this host.
-                print(
-                    f"Video is too large ({file_size:.1f} MB > "
-                    f"{self.MAX_FILE_SIZE_MB:.0f} MB). Skipping compression and deleting."
-                )
+                print(f"Video is too large. Current size: {file_size}. Attempting to scale down resolution...")
+                self.adjust_resolution(target_height=720)
+
+            # Step 3: Compress if still too large after scaling
+            file_size = self.get_os_filesize()
+            if file_size > self.MAX_FILE_SIZE_MB:
+                print(f"Video is still too large. Current size: {file_size}. Compressing...")
+                compressed_response = self.compress()
+                if not compressed_response.success:
+                    return compressed_response
+
+            # Final check: reject only if compression still couldn't fit the limit
+            file_size = self.get_os_filesize()
+            if file_size > self.MAX_FILE_SIZE_MB:
+                print(f"Video is still too large. Current size: {file_size}. Deleting...")
                 self.delete_file()
                 response = Response(success=False)
                 response.add_error(
                     error_type="FileTooLarge",
                     message=(
-                        f"File is too large ({file_size:.1f} MB). "
-                        f"This server's upload limit is {self.MAX_FILE_SIZE_MB:.0f} MB. "
-                        "Auto-compression is temporarily disabled."
+                        f"File is too large ({file_size:.1f} MB) even after compression. "
+                        f"This server's upload limit is {self.MAX_FILE_SIZE_MB:.0f} MB."
                     ),
                 )
                 return response

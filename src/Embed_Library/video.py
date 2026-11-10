@@ -5,6 +5,7 @@ import subprocess
 import uuid
 import ffmpeg  # Still using this for probe, but not for encoding
 from response_handler import Response
+from paths import data_path, ensure_data_dir, get_data_dir
 
 
 class Video:
@@ -19,7 +20,7 @@ class Video:
         self.duration = None
         self.uploader = None
         self.site = None
-        self.filename = f"downloaded_video_{self.id}.mp4"
+        self.filename = data_path(f"downloaded_video_{self.id}.mp4")
         self.MAX_FILE_SIZE_MB = MAX_FILE_SIZE_MB
         self.filesize = 0.0  # We'll store the final size (MB) here
         self.init_response = self._extract_metadata()
@@ -27,10 +28,11 @@ class Video:
     @classmethod
     def cookies_path(cls):
         """Return path to session cookies file if it exists."""
-        # src/Embed_Library/video.py -> project root
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        path = os.path.join(project_root, "session_cookies", cls.COOKIES_FILENAME)
+        path = data_path("session_cookies", cls.COOKIES_FILENAME)
         return path if os.path.isfile(path) else None
+
+    def _data_file(self, name: str) -> str:
+        return data_path(os.path.basename(name))
 
     def _base_ydl_opts(self, **extra):
         opts = {"quiet": True, "noplaylist": True, "no_warnings": True}
@@ -54,7 +56,7 @@ class Video:
             self.duration = info_dict.get("duration")
             self.uploader = info_dict.get("uploader")
             self.site = info_dict.get("extractor_key")
-            self.filename = f"downloaded_video_{self.id}.{info_dict.get('ext', 'mp4')}"
+            self.filename = data_path(f"downloaded_video_{self.id}.{info_dict.get('ext', 'mp4')}")
             filesize = info_dict.get("filesize") or info_dict.get("filesize_approx") or 0
             self.filesize = filesize / (1024 * 1024)  # Convert bytes to MB
             return Response(success=True)
@@ -152,7 +154,7 @@ class Video:
 
         # Use a dedicated audio basename. FFmpegExtractAudio rewrites the extension to .mp3,
         # so we must not keep pointing at the original .mp4 metadata filename.
-        audio_basename = f"downloaded_audio_{self.id}"
+        audio_basename = data_path(f"downloaded_audio_{self.id}")
         self.filename = f"{audio_basename}.mp3"
 
         ydl_opts = self._base_ydl_opts(
@@ -221,7 +223,7 @@ class Video:
         if not resolution or resolution[1] <= target_height:
             return self.filename  # No need to scale if already small enough
 
-        output_filename = f"Resized_{self.filename}"
+        output_filename = data_path(f"Resized_{os.path.basename(self.filename)}")
         try:
             # ffmpeg -i <input> -vf scale=-2:<target_height> -c:v libx264 -preset fast -b:v <target_bitrate> 
             #        -c:a aac -b:a 96k -movflags +faststart -profile:v main -level:v 4.1 -pix_fmt yuv420p <output>
@@ -272,7 +274,9 @@ class Video:
             return response
 
         # Force MP4 extension if needed
-        outtmpl = f"{self.filename}.mp4" if not self.filename.endswith(".mp4") else self.filename
+        if not self.filename.endswith(".mp4"):
+            self.filename = data_path(f"downloaded_video_{self.id}.mp4")
+        outtmpl = self.filename
         ydl_opts = self._base_ydl_opts(
             format="bestvideo+bestaudio/best",
             outtmpl=outtmpl,
@@ -363,7 +367,8 @@ class Video:
 
     def _convert_to_h264(self):
         """Converts the video to H.264 using subprocess with system-installed ffmpeg."""
-        output_file = f"Converted_{self.filename.replace('.mp4', '')}.mp4"
+        base = os.path.basename(self.filename).replace(".mp4", "")
+        output_file = data_path(f"Converted_{base}.mp4")
 
         try:
             command = [
@@ -404,7 +409,8 @@ class Video:
             )
             return response
 
-        output_filename = f"Compressed_{self.filename.replace('.mp4', '')}.mp4"
+        base = os.path.basename(self.filename).replace(".mp4", "")
+        output_filename = data_path(f"Compressed_{base}.mp4")
 
         command = [
             "ffmpeg", "-y",
@@ -438,6 +444,7 @@ class Video:
 
     def delete_file(self):
         """Delete the active output and any leftover video/audio files for this download."""
+        ensure_data_dir()
         candidates = set()
         if self.filename:
             candidates.add(self.filename)
@@ -451,13 +458,15 @@ class Video:
             f"Compressed_downloaded_video_{self.id}",
         ):
             for ext in (".mp4", ".mp3", ".m4a", ".webm", ".opus", ".mkv", ".mov", ".wav", ".part"):
-                candidates.add(f"{prefix}{ext}")
+                candidates.add(data_path(f"{prefix}{ext}"))
 
-        # Catch anything else in the cwd that includes this download id
+        # Catch anything else in DATA_DIR that includes this download id
         try:
-            for name in os.listdir("."):
-                if self.id in name and os.path.isfile(name):
-                    candidates.add(name)
+            for name in os.listdir(get_data_dir()):
+                if self.id in name:
+                    full = data_path(name)
+                    if os.path.isfile(full):
+                        candidates.add(full)
         except OSError:
             pass
 

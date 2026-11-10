@@ -182,8 +182,7 @@ class Database:
 # adding this down here so I can manually update the db file then
 # send it back to the raspberry pi all updated and everything
 if __name__ == "__main__":
-    # get the current file path we're operating in, so we don't have to hard code this in.
-    # this also requires that the database be in the same working directory as this script.
-    CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
-    DB_PATH_AND_NAME = os.path.join(CURRENT_DIRECTORY, "Focus_Mode_Info.db")
+    from paths import data_path
+
+    DB_PATH_AND_NAME = data_path("Focus_Mode_Info.db")
     database_instance = Database(DB_PATH_AND_NAME)

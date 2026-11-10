@@ -6,6 +6,8 @@ This is just a collection of file related stuff for us to use
 import os
 import requests
 
+from paths import data_path, ensure_data_dir, get_data_dir
+
 
 class File_Processing:
 
@@ -16,26 +18,23 @@ class File_Processing:
     @staticmethod
     def cwd_is_script_dir() -> bool:
         '''
-        Checks to see if the current working directory is the script's directory. 
+        Checks to see if the current working directory is the data directory.
 
-        Returns: True if the change was successful
+        Returns: True if cwd matches the runtime data dir.
         '''
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        cwd_is_the_script_dir = os.getcwd() == script_dir
-        return cwd_is_the_script_dir
+        return os.path.abspath(os.getcwd()) == str(get_data_dir())
     
     @staticmethod
     def return_file_name_with_current_directory(filename: str) -> str:
-
-        # get the current file path we're operating in, so we don't have to hard code this in.
-        # this also requires that the file be in the same working directory as this script.
-        CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
-        FILE_PATH_AND_NAME = os.path.join(CURRENT_DIRECTORY, filename)
-        return FILE_PATH_AND_NAME
+        """Resolve a runtime filename under DATA_DIR (/app/data in Docker)."""
+        ensure_data_dir()
+        return data_path(os.path.basename(filename) if os.path.isabs(filename) else filename)
     
     @staticmethod
     def get_abs_file_path(filename: str) -> str:
-        return os.path.abspath(filename)
+        if os.path.isabs(filename):
+            return filename
+        return data_path(filename)
     
     @staticmethod
     def remove_file(filename: str, abs_path_used: bool) -> bool:

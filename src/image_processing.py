@@ -12,6 +12,8 @@ import pytesseract
 from PIL import Image
 from io import BytesIO
 
+from paths import data_path
+
 
 class Image_Processing:
 
@@ -55,13 +57,14 @@ class Image_Processing:
         if response.status_code == 200:
             # Open the image and save it
             
-            with open('Profile_Picture.jpg', 'wb') as file:
+            profile_path = data_path('Profile_Picture.jpg')
+            with open(profile_path, 'wb') as file:
                 file.write(response.content)
 
-                if os.path.exists('Profile_Picture.jpg'):
-                    Image_Processing.resize_image_to_512x512('Profile_Picture.jpg')
+                if os.path.exists(profile_path):
+                    Image_Processing.resize_image_to_512x512(profile_path)
 
-        return os.path.exists('Profile_Picture.jpg')
+        return os.path.exists(data_path('Profile_Picture.jpg'))
     
 
     @staticmethod

@@ -12,9 +12,11 @@ from file_processing import File_Processing
 from advice import Advice
 import asyncio
 
+from paths import data_path, use_data_cwd
+
+use_data_cwd()
 client = Study_Bot_Client()
 tree = discord.app_commands.CommandTree(client)
-os.chdir(client.script_dir)
 database_file_name_and_path = File_Processing.return_file_name_with_current_directory(
     "Focus_Mode_Info.db")
 database_instance = Database(database_file_name_and_path)
@@ -265,7 +267,7 @@ async def Duplicate_Emote_Command(interaction: discord.Interaction):
     for emote in interaction.guild.emojis:
 
         if not emote.animated:
-            emote_filename = f'{emote.name} - {emote.id}.jpg'
+            emote_filename = data_path(f'{emote.name} - {emote.id}.jpg')
             emote_list.append(emote)
 
             file_exists = File_Processing.check_if_file_exists(emote_filename)

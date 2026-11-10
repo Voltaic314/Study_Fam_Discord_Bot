@@ -26,6 +26,7 @@ from database import Database
 from Embed_Library.video import Video
 from Embed_Library.images import Images
 from file_processing import File_Processing
+from paths import data_path
 
 
 
@@ -49,10 +50,10 @@ def generate_hash_dict(emote_list: list[object]) -> dict[object, hash]:
     hash_list = {}
 
     for emote in emote_list:
-        emote_filename = f'{emote.name} - {emote.id}.jpg'
+        emote_filename = data_path(f'{emote.name} - {emote.id}.jpg')
         hash_list[emote] = Image_Processing.difference_image_hashing(emote_filename)
         # remove each image after we hash them to save on resources
-        File_Processing.remove_file(emote_filename, False)
+        File_Processing.remove_file(emote_filename, True)
 
     return hash_list
 
@@ -194,9 +195,10 @@ async def extract_text_from_images(attachments: discord.Attachment) -> dict[str,
         if attachment_is_img(attachment):
 
             # save the img, ocr the image, delete the image, save its text to the dictionary
-            await attachment.save(fp=attachment.filename)
-            img_text = ' '.join(Image_Processing.get_image_text(attachment.filename))
-            os.remove(os.path.abspath(attachment.filename))
+            attachment_path = data_path(os.path.basename(attachment.filename))
+            await attachment.save(fp=attachment_path)
+            img_text = ' '.join(Image_Processing.get_image_text(attachment_path))
+            os.remove(attachment_path)
             image_texts[f'attachment {attachment_counter}'] = img_text
         
         # regardless of whether the attachment was an image, increase the counter so it makes sense

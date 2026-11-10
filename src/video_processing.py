@@ -42,15 +42,9 @@ class YT_Video(YouTube):
     @property
     def file_path(self) -> str:
         """
-        Gets the current absolute filepath of the file provided.
-        :param filename: the name of the file you wish to get the path of.
-        :returns: str of the actual absolute file path of the current directory.
+        Absolute path for this video's on-disk filename under DATA_DIR.
         """
-        current_directory = os.path.dirname(os.path.abspath(__file__))
-        # Change the current working directory to the script's directory
-        os.chdir(current_directory)
-        file_path = os.path.join(current_directory, self.filename)
-        return file_path
+        return File_Processing.get_abs_file_path(self.filename)
 
     @property
     def file_exists(self) -> bool:
@@ -59,7 +53,7 @@ class YT_Video(YouTube):
         
         Returns: True if the file exists, False otherwise.
         """
-        return os.path.exists(self.filename)
+        return os.path.exists(self.file_path)
     
     @property
     def is_watchable(self) -> bool:
@@ -142,9 +136,9 @@ class YT_Video(YouTube):
 
     def transcribe_yt_video(self) -> bool:
 
-        txt_filename = Text_Processing.format_file_name(video_title=self.title)
-        txt_filename = File_Processing.get_abs_file_path(txt_filename)
-        video_title = Text_Processing.format_title_of_vid_for_txt_file(video_title=self.title)
+        txt_filename = File_Processing.get_abs_file_path(
+            Text_Processing.format_file_name(video_title=self.title)
+        )
         if not self.caption_text:
             return False
         total_txt_to_write = self.text_file_header + self.caption_text

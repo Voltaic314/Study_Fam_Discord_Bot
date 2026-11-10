@@ -31,3 +31,5 @@ session_cookies/
 cron.log
 .study_bot.lock
 src/.study_bot.lock
+data/*
+!data/.gitkeep

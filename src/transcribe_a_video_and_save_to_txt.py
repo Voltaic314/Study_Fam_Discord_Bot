@@ -139,10 +139,12 @@ def transcribe_video(video_url=None) -> str:
     if video_url == None:
         video_url = get_video_url_to_transcribe()
     
+    from paths import data_path
+
     video_title, video_id = get_video_info(video_url=video_url)
     video_title = remove_special_characters_from_string(video_title)
     txt_file_header = format_text_file_intro(video_title=video_title, video_url=video_url)
-    txt_file_friendly_name = format_filename(video_title=video_title)
+    txt_file_friendly_name = data_path(format_filename(video_title=video_title))
     txt_from_vid = get_text_from_video(video_id=video_id)
     total_txt_to_write = txt_file_header + txt_from_vid
     write_string_to_text_file(txt_file_friendly_name, total_txt_to_write)

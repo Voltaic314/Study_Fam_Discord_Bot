@@ -3,6 +3,7 @@ import os
 import json
 import subprocess
 from response_handler import Response
+from paths import data_path
 
 
 class Image:
@@ -12,7 +13,7 @@ class Image:
 
     def __init__(self, url, filename, filesize):
         self.url = url
-        self.filename = filename
+        self.filename = data_path(os.path.basename(filename))
         self.filesize = filesize
 
     def exists_locally(self):
@@ -55,7 +56,7 @@ class Image:
         if not self.exists_locally():
             raise FileNotFoundError("Downloaded image not found.")
         
-        output_filename = f"Compressed_{self.filename}"
+        output_filename = data_path(f"Compressed_{os.path.basename(self.filename)}")
         
         command = [
             "ffmpeg", "-i", self.filename, "-q:v", str(quality), output_filename
@@ -102,7 +103,7 @@ class Images:
             
             for index, entry in enumerate(entries):
                 ext = entry.get('extension', 'jpg')  # Extract extension safely
-                filename = f"downloaded_image_{index}.{ext}"
+                filename = data_path(f"downloaded_image_{index}.{ext}")
                 filesize = entry.get("filesize", 0) / (1024 * 1024)  # Convert bytes to MB
                 self.images.append(Image(self.url, filename, filesize))
 

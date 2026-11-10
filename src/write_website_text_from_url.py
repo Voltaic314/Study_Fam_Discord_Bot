@@ -184,9 +184,11 @@ def write_text_to_txt_file_from_url(url: str) -> None:
     
     Returns: txt file name if it properly saved.
     '''
+    from paths import data_path
+
     website_name = extract_domain_from_website(url=url)
     website_body_text = extract_website_text(url)
-    text_filename = f'{website_name}.txt'
+    text_filename = data_path(f'{website_name}.txt')
     write_text_to_file(website_body_text, text_filename, url)
 
     if os.path.exists(text_filename):

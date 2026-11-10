@@ -7,6 +7,7 @@ import traceback
 import discord
 
 from config import *
+from paths import data_path, use_data_cwd
 from text_processing import Text_Processing
 from time_modulation import Time_Stuff
 from video_processing import YT_Video
@@ -339,12 +340,12 @@ class Study_Bot_Client(discord.Client):
                 print("content was not able to be transcribed")
                 return False
 
-            transcript_filename = Text_Processing.format_file_name(video.title)
+            transcript_filename = data_path(Text_Processing.format_file_name(video.title))
 
             
             # send the file to the thread in a message
             txt_file = open(transcript_filename, mode="rb")
-            txt_file_to_upload = discord.File(txt_file, filename=transcript_filename)
+            txt_file_to_upload = discord.File(txt_file, filename=os.path.basename(transcript_filename))
             try:
                 await thread.send(content="Transcription File: ", file=txt_file_to_upload)
             except Exception as e:
@@ -373,9 +374,11 @@ class Study_Bot_Client(discord.Client):
 
 
 ##########################################################################################
+# All runtime reads/writes go under DATA_DIR (project data/ locally, /app/data in Docker).
+use_data_cwd()
+
 client = Study_Bot_Client()
 tree = discord.app_commands.CommandTree(client)
-os.chdir(client.script_dir)
 database_file_name_and_path = File_Processing.return_file_name_with_current_directory(
     "Focus_Mode_Info.db")
 database_instance = Database(database_file_name_and_path)
@@ -646,7 +649,7 @@ async def Duplicate_Emote_Command(interaction: discord.Interaction):
     for emote in interaction.guild.emojis:
 
         if not emote.animated:
-            emote_filename = f'{emote.name} - {emote.id}.jpg'
+            emote_filename = data_path(f'{emote.name} - {emote.id}.jpg')
             emote_list.append(emote)
 
             file_exists = File_Processing.check_if_file_exists(emote_filename)
@@ -910,5 +913,29 @@ async def on_error(event, *args, **kwargs):
 
 
 if __name__ == "__main__":
+    import atexit
+    import fcntl
+
+    # Prevent cron/docker restarts from stacking multiple bot processes.
+    lock_path = data_path(".study_bot.lock")
+    lock_file = open(lock_path, "w")
+    try:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        print("Study Bot is already running. Exiting to avoid duplicate instances.")
+        raise SystemExit(0)
+
+    lock_file.write(str(os.getpid()))
+    lock_file.flush()
+
+    def _release_lock():
+        try:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+            lock_file.close()
+        except Exception:
+            pass
+
+    atexit.register(_release_lock)
+
     TOKEN = discord_bot_credentials.get("API_Key", "")
     client.run(TOKEN)

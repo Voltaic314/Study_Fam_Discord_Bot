@@ -33,3 +33,6 @@ cron.log
 src/.study_bot.lock
 data/*
 !data/.gitkeep
+
+.env
+env
